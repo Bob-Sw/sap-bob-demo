@@ -1,8 +1,9 @@
 fastapi
 uvicorn[standard]
 sqlalchemy
-psycopg2-binary
 pydantic
 python-multipart
-openpyxl
-pandas
+passlib
+bcrypt
+itsdangerous
+cryptography

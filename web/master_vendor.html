@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Vendor - Modul AP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="h-full flex overflow-hidden text-slate-700 text-xs">
+
+    <!-- SIDEBAR SAP BOB -->
+    <aside class="w-48 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800 shadow-xl z-20">
+        <div class="h-12 px-3 bg-slate-950/80 flex items-center gap-2 border-b border-slate-800/80">
+            <span class="text-xl">🏢</span>
+            <h1 class="text-xs font-bold text-white tracking-wide">SAP BoB</h1>
+        </div>
+        <nav class="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
+            <div class="px-2 pb-1.5 text-[9px] font-semibold text-slate-500 uppercase tracking-wider">Account Payable</div>
+            <a href="/master_vendor" class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-semibold text-white bg-indigo-600/90 shadow-sm transition-all">
+                <span>🚚</span> Master Vendor
+            </a>
+            <div class="pt-3 border-t border-slate-800/80 mt-2">
+                <div class="px-2 pb-1.5 text-[9px] font-semibold text-slate-500 uppercase tracking-wider">Navigasi Utama</div>
+                <a href="/dashboard" class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60"><span>📊</span> Dashboard</a>
+                <a href="/gl" class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60"><span>📓</span> Jurnal Umum</a>
+            </div>
+        </nav>
+        <div class="p-2 bg-slate-950/60 border-t border-slate-800/80">
+            <button onclick="window.location.href='/dashboard'" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 py-1.5 px-2 rounded text-[10px]">Kembali</button>
+        </div>
+    </aside>
+
+    <!-- MAIN AREA -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-100/70">
+        <header class="h-10 bg-white border-b border-slate-200/80 px-4 flex items-center justify-between shadow-xs z-10">
+            <div class="flex items-center gap-1.5 text-[11px]">
+                <span class="text-slate-400">Account Payable</span> <span class="text-slate-300">/</span> <h2 class="font-semibold text-slate-800">Master Data Vendor</h2>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="exportVendorKeExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-[11px] font-bold transition-colors shadow-xs flex items-center gap-1">
+                    📊 Export Excel
+                </button>
+                <button type="button" onclick="muatDataVendor()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded text-[11px] font-semibold border border-slate-300">
+                    🔄 Segarkan
+                </button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-3 space-y-3">
+            <!-- FORM INPUT VENDOR -->
+            <div class="bg-white rounded border border-slate-200 shadow-sm p-3">
+                <h3 class="font-bold text-slate-700 text-[11px] uppercase mb-2 border-b pb-1" id="form-title">➕ Input / Edit Master Vendor</h3>
+                <form id="formVendor" onsubmit="simpanVendor(event)" class="grid grid-cols-1 md:grid-cols-4 gap-2">
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Kode Vendor <span class="text-rose-500">*</span></label>
+                        <input type="text" id="kode_vendor" required placeholder="Misal: VND-001" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-mono outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Nama Vendor / Supplier <span class="text-rose-500">*</span></label>
+                        <input type="text" id="nama_vendor" required placeholder="PT Sumber Berkah" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">NPWP</label>
+                        <input type="text" id="npwp" placeholder="00.000.000.0-000.000" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-mono outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Termin Pembayaran (Hari)</label>
+                        <input type="number" id="termin_hari" value="30" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-mono outline-none focus:border-indigo-500">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Alamat Lengkap</label>
+                        <input type="text" id="alamat" placeholder="Jl. Raya No. 123" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">No. Telepon / HP</label>
+                        <input type="text" id="telepon" placeholder="021-xxxx / 0812xxx" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Email Vendor</label>
+                        <input type="email" id="email" placeholder="billing@vendor.com" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none focus:border-indigo-500">
+                    </div>
+
+                    <!-- MAPPING AKUN KEBIJAKAN PERUSAHAAN (PREFIX 21) -->
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-semibold text-indigo-700 mb-0.5">Akun Hutang Default (COA Prefix 21-24) <span class="text-rose-500">*</span></label>
+                        <select id="select_akun_hutang" required class="w-full bg-indigo-50/60 border border-indigo-200 rounded px-2 py-1 text-[11px] font-medium outline-none focus:border-indigo-500">
+                            <option value="">-- Memuat Akun Hutang --</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Kontak Person (PIC)</label>
+                        <input type="text" id="kontak_person" placeholder="Bpk. Anton" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Status Vendor</label>
+                        <select id="status" class="w-full bg-slate-50 border border-slate-200 rounded px-1.5 py-1 text-[11px] outline-none focus:border-indigo-500">
+                            <option value="Aktif">Aktif</option>
+                            <option value="Nonaktif">Nonaktif</option>
+                        </select>
+                    </div>
+
+                    <!-- DATA REKENING TRANSFER -->
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Nama Bank Vendor</label>
+                        <input type="text" id="nama_bank" placeholder="BCA / Mandiri / BRI" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Nomor Rekening</label>
+                        <input type="text" id="no_rekening" placeholder="1234567890" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-mono outline-none focus:border-indigo-500">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Atas Nama Rekening</label>
+                        <input type="text" id="atas_nama" placeholder="PT Sumber Berkah" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none focus:border-indigo-500">
+                    </div>
+
+                    <div class="md:col-span-4 flex justify-end gap-2 pt-2 border-t border-slate-100">
+                        <button type="button" onclick="resetForm()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1 rounded text-[11px]">Batal / Reset</button>
+                        <button type="submit" id="btnSimpan" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1 rounded text-[11px] font-semibold">💾 Simpan Vendor</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- TABEL MASTER VENDOR -->
+            <div class="bg-white rounded border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[40vh]">
+                <div class="px-3 py-1.5 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                    <span class="font-bold text-slate-600 text-[10px] uppercase">Daftar Supplier</span>
+                    <span id="jml-vendor" class="text-[9px] font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-700">0 Vendor</span>
+                </div>
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 border-b border-slate-200 font-semibold text-[11px]">
+                                <th class="py-2.5 px-3">Kode Vendor</th>
+                                <th class="py-2.5 px-3">Nama Rekanan Vendor</th>
+                                <th class="py-2.5 px-3">Kontak Person</th>
+                                <th class="py-2.5 px-3">Telepon</th>
+                                <th class="py-2.5 px-3 text-center">Termin</th>
+                                <th class="py-2.5 px-3">Bank & Rekening</th>
+                                <th class="py-2.5 px-3 text-center">Status</th>
+                                <th class="py-2.5 px-3 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabel-vendor-body" class="divide-y divide-slate-100 text-[11px]">
+                            <tr><td colspan="8" class="py-6 text-center text-slate-400 italic">Memuat data vendor...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let vendorList = [];
+        let listCoaHutang = [];
+        let tsAkunHutang = null;
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            await muatAkunHutang();
+            await muatDataVendor();
+        });
+
+        async function muatAkunHutang() {
+            try {
+                const res = await fetch('/api/coa/hutang');
+                if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+        
+                const listCoaHutang = await res.json();
+                const sel = document.getElementById('select_akun_hutang');
+                if (!sel) return;
+
+                let opsiHtml = '<option value="">-- Pilih Akun Hutang --</option>';
+                listCoaHutang.forEach(a => {
+                    const kode = a.kode || a.kode_akun;
+                    const nama = a.nama || a.nama_akun;
+                    opsiHtml += `<option value="${kode}" data-nama="${nama}">${kode} - ${nama}</option>`;
+                });
+                sel.innerHTML = opsiHtml;
+
+                // Jika Anda menggunakan Tom Select pada dropdown ini:
+                if (typeof TomSelect !== "undefined") {
+                    if (tsAkunHutang) {
+                        tsAkunHutang.destroy();
+                    }
+                    tsAkunHutang = new TomSelect('#select_akun_hutang', {
+                        create: false,
+                        placeholder: "🔍 Pilih / Cari Akun Hutang...",
+                        sortField: { field: "text", order: "asc" }
+                    });
+                }
+            } catch (err) {
+                console.error("Gagal muat akun hutang:", err);
+            }
+        }
+
+        let cacheMasterVendor = [];
+
+        // 1. Muat Data Vendor dari Backend
+        async function muatDataVendor() {
+            const tbody = document.getElementById('tabel_vendor_body') || 
+                  document.getElementById('tabel-vendor') || 
+                  document.querySelector('tbody');
+
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-slate-400 italic">Memuat data rekanan vendor...</td></tr>';
+            }
+
+            try {
+                const res = await fetch(`/api/vendor?_t=${Date.now()}`);
+                if (!res.ok) throw new Error("Gagal mengambil data vendor");
+                
+                cacheMasterVendor = await res.json();
+
+                renderTabelVendor(cacheMasterVendor);
+            } catch (err) {
+                console.error("Gagal muat vendor:", err);
+                if (tbody) {
+                    tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-rose-500 font-semibold">Gagal memuat vendor: ${err.message}</td></tr>`;
+                }
+            }
+        }
+
+        // 2. Render Tabel dengan Mapping Fleksibel (Anti-Undefined)
+        function renderTabelVendor(data) {
+            const tbody = document.getElementById('tabel_vendor_body') || 
+                  document.getElementById('tabel-vendor') || 
+                  document.querySelector('tbody');
+
+            if (!tbody) {
+                console.error("Elemen <tbody> tabel vendor tidak ditemukan di DOM!");
+                return;
+            }   
+
+            tbody.innerHTML = "";
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="p-6 text-center text-slate-400 italic">Belum ada data rekanan vendor terdaftar.</td></tr>';
+                return;
+            }
+
+            let barisHtml = "";
+            data.forEach(v => {
+                const kode = v.kode_vendor || v.kode || "-";
+                const nama = v.nama_vendor || v.nama || "-";
+                const kontak = v.kontak_person || "-";
+                const telp = v.telepon || "-";
+                const termin = (v.termin_hari !== undefined && v.termin_hari !== null) ? `${v.termin_hari} Hari` : "30 Hari";
+                const bank = (v.nama_bank && v.nama_bank !== '-') ? `${v.nama_bank} - ${v.no_rekening || ''}` : "-";
+
+                const isAktif = String(v.status || 'Aktif').trim().toLowerCase() === 'aktif';
+                const badgeStatus = isAktif
+                    ? `<span class="bg-emerald-100 text-emerald-700 text-[9px] font-bold px-2 py-0.5 rounded">Aktif</span>`
+                    : `<span class="bg-rose-100 text-rose-700 text-[9px] font-bold px-2 py-0.5 rounded">Nonaktif</span>`;
+
+                barisHtml += `
+                    <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
+                        <td class="py-2 px-3 font-mono font-bold text-indigo-700">${kode}</td>
+                        <td class="py-2 px-3 font-semibold text-slate-800">${nama}</td>
+                        <td class="py-2 px-3 text-slate-600">${kontak}</td>
+                        <td class="py-2 px-3 text-slate-600 font-mono text-[11px]">${telp}</td>
+                        <td class="py-2 px-3 text-center text-slate-600 font-semibold">${termin}</td>
+                        <td class="py-2 px-3 text-slate-600 text-[11px]">${bank}</td>
+                        <td class="py-2 px-3 text-center">${badgeStatus}</td>
+                        <td class="py-2 px-3 text-center whitespace-nowrap">
+                            <button type="button" onclick="editVendor('${kode}')" class="text-amber-600 hover:bg-amber-100 p-1 rounded transition mr-1" title="Edit">✏️</button>
+                            <button type="button" onclick="hapusVendor('${kode}')" class="text-rose-600 hover:bg-rose-100 p-1 rounded transition" title="Hapus">❌</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = barisHtml;
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            muatDataVendor();
+            if (typeof muatAkunHutang === "function") {
+                muatAkunHutang();
+            }
+        });
+
+        // 3. Fungsi Export ke Excel (.xlsx) dengan SheetJS
+        function exportVendorKeExcel() {
+            if (!cacheMasterVendor || cacheMasterVendor.length === 0) {
+                return alert("Tidak ada data rekanan vendor untuk diekspor!");
+            }
+
+            // Susun Header Kolom Excel
+            const excelRows = [
+                [
+                    "Kode Vendor",
+                    "Nama Vendor",
+                    "NPWP",
+                    "Alamat",
+                    "Kontak Person",
+                    "Telepon",
+                    "Email",
+                    "Termin (Hari)",
+                    "Bank",
+                    "No. Rekening",
+                    "Atas Nama Rekening",
+                    "Status"
+                ]
+            ];
+
+            // Isi Data Baris per Baris
+            cacheMasterVendor.forEach(v => {
+                excelRows.push([
+                    v.kode_vendor || "-",
+                    v.nama_vendor || "-",
+                    v.npwp || "-",
+                    v.alamat || "-",
+                    v.kontak_person || "-",
+                    v.telepon || "-",
+                    v.email || "-",
+                    Number(v.termin_hari) || 0,
+                    v.nama_bank || "-",
+                    v.no_rekening ? `'${v.no_rekening}` : "-", // Petik tunggal mencegah pemotongan leading zero
+                    v.atas_nama || "-",
+                    v.status || "Aktif"
+                ]);
+            });
+
+            // Konversi array ke worksheet SheetJS
+            const ws = XLSX.utils.aoa_to_sheet(excelRows);
+
+            // Auto-fit lebar kolom
+            const colWidths = excelRows[0].map((_, colIndex) => {
+                let maxLen = 0;
+                excelRows.forEach(row => {
+                    const cellVal = row[colIndex] ? row[colIndex].toString() : '';
+                    if (cellVal.length > maxLen) maxLen = cellVal.length;
+                });
+                return { wch: Math.max(maxLen + 3, 12) };
+            });
+            ws['!cols'] = colWidths;
+
+            // Buat Workbook baru & simpan file
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Master Vendor");
+
+            const today = new Date().toISOString().split('T')[0];
+            XLSX.writeFile(wb, `Master_Data_Vendor_${today}.xlsx`);
+        }
+
+        // Pastikan fungsi dipanggil saat halaman dimuat
+        document.addEventListener("DOMContentLoaded", () => {
+            muatDataVendor();
+        });
+
+        async function simpanVendor(e) {
+            e.preventDefault();
+            const selAkun = document.getElementById('select_akun_hutang');
+            const optAkun = selAkun.options[selAkun.selectedIndex];
+            
+            const payload = {
+                kode_vendor: document.getElementById('kode_vendor').value.trim(),
+                nama_vendor: document.getElementById('nama_vendor').value.trim(),
+                npwp: document.getElementById('npwp').value.trim() || "-",
+                termin_hari: parseInt(document.getElementById('termin_hari').value) || 0,
+                alamat: document.getElementById('alamat').value.trim() || "-",
+                telepon: document.getElementById('telepon').value.trim() || "-",
+                email: document.getElementById('email').value.trim() || "-",
+                kontak_person: document.getElementById('kontak_person').value.trim() || "-",
+                status: document.getElementById('status').value,
+                nama_bank: document.getElementById('nama_bank').value.trim() || "-",
+                no_rekening: document.getElementById('no_rekening').value.trim() || "-",
+                atas_nama: document.getElementById('atas_nama').value.trim() || "-"
+            };
+
+            try {
+                const res = await fetch('/api/vendor', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+                if (res.ok) {
+                    alert("✅ " + result.pesan);
+                    resetForm();
+                    muatDataVendor();
+                } else {
+                    alert("❌ Gagal: " + result.detail);
+                }
+            } catch (err) {
+                alert("Gagal terhubung ke server.");
+            }
+        }
+
+        function editVendor(idx) {
+            const v = vendorList[idx];
+            if (!v) return;
+            document.getElementById('kode_vendor').value = v.kode_vendor;
+            document.getElementById('kode_vendor').readOnly = true;
+            document.getElementById('nama_vendor').value = v.nama_vendor;
+            document.getElementById('npwp').value = v.npwp || '';
+            document.getElementById('termin_hari').value = v.termin_hari || 0;
+            document.getElementById('alamat').value = v.alamat || '';
+            document.getElementById('telepon').value = v.telepon || '';
+            document.getElementById('email').value = v.email || '';
+            document.getElementById('kontak_person').value = v.kontak_person || '';
+            document.getElementById('status').value = v.status || 'Aktif';
+            document.getElementById('nama_bank').value = v.nama_bank || '';
+            document.getElementById('no_rekening').value = v.no_rekening || '';
+            document.getElementById('atas_nama').value = v.atas_nama || '';
+
+            document.getElementById('form-title').innerText = `✏️ Edit Vendor: ${v.nama_vendor} (${v.kode_vendor})`;
+            document.getElementById('btnSimpan').innerText = "💾 Perbarui Vendor";
+        }
+
+        function resetForm() {
+            document.getElementById('formVendor').reset();
+            document.getElementById('kode_vendor').readOnly = false;
+            document.getElementById('form-title').innerText = "➕ Input / Edit Master Vendor";
+            document.getElementById('btnSimpan').innerText = "💾 Simpan Vendor";
+        }
+
+        async function hapusVendor(kode) {
+            if (!confirm(`Hapus vendor ${kode}?`)) return;
+            try {
+                const res = await fetch(`/api/vendor/${encodeURIComponent(kode)}`, { method: 'DELETE' });
+                if (res.ok) muatDataVendor();
+            } catch (err) {
+                alert("Gagal menghapus.");
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup User - Modul SAP BoB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/role_akses.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body class="h-full flex overflow-hidden text-slate-700 text-xs">
+
+    <aside
+        class="w-48 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800 shadow-xl z-20">
+        <div class="h-12 px-3 bg-slate-950/80 flex items-center gap-2 border-b border-slate-800/80">
+            <img src="/Logo_SAP.png" alt="Logo" class="h-6 w-auto object-contain"
+                onerror="this.onerror=null; this.src='Logo_SAP.png';">
+            <h1 class="text-xs font-bold text-white tracking-wide">SAP BoB</h1>
+        </div>
+        <nav class="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
+            <div class="px-2 pb-1.5 text-[9px] font-semibold text-slate-500 uppercase tracking-wider">Modul Akuntansi
+            </div>
+            <a href="/dashboard"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>📊</span>
+                Dashboard</a>
+            <div id="section-setup-system" class="pt-3 border-t border-slate-800/80 mt-2">
+                <div class="px-2 pb-1.5 text-[9px] font-semibold text-amber-500 uppercase tracking-wider">Setup System
+                </div>
+                <a href="/setup_user"
+                    class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-semibold text-white bg-indigo-600/90 shadow-sm transition-all"><span>⚙️</span>
+                    User & Hak Akses</a>
+                <a href="/setup_coa"
+                    class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all mt-0.5"><span>🗂️</span>
+                    Chart of Account</a>
+                <a href="/setup_org"
+                    class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all mt-0.5"><span>🏢</span>
+                    Cabang & Dept</a>
+                <a href="/setup_voucher"
+                    class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all mt-0.5"><span>🎟️</span>
+                    Kode Voucher</a>
+            </div>
+        </nav>
+        <div class="p-2 bg-slate-950/60 border-t border-slate-800/80">
+            <button onclick="localStorage.clear(); window.location.href='/';"
+                class="w-full bg-slate-800 hover:bg-rose-600/80 text-slate-300 hover:text-white py-1.5 px-2 rounded text-[10px] font-medium transition-all flex items-center justify-center gap-1.5"><span>🚪</span>
+                Logout</button>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-100/70">
+        <header
+            class="h-10 bg-white border-b border-slate-200/80 px-4 flex items-center justify-between shadow-xs z-10 flex-shrink-0">
+            <div class="flex items-center gap-1.5 text-[11px]">
+                <span class="text-slate-400">Setup System</span> <span class="text-slate-300">/</span>
+                <h2 class="font-semibold text-slate-800">Manajemen User & Hak Akses</h2>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-3 space-y-3">
+
+            <div class="bg-white rounded border border-slate-200 shadow-sm p-3">
+                <h3 class="font-bold text-slate-700 text-[11px] uppercase mb-2 border-b pb-1" id="form-title">➕ Tambah
+                    User Baru</h3>
+                <input type="hidden" id="user_id" value="">
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Username</label>
+                        <input type="text" id="username" placeholder="Contoh: rudi"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] focus:bg-white focus:border-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Password</label>
+                        <input type="password" id="password" placeholder="••••••••"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] focus:bg-white focus:border-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Nama Karyawan
+                            (Asli)</label>
+                        <input type="text" id="nama_karyawan" placeholder="Contoh: Rudi Hermawan"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] focus:bg-white focus:border-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Role / Hak Akses</label>
+                        <select id="role"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] focus:bg-white focus:border-indigo-500 outline-none">
+                            <option value="gl_user">GL Maker (Input Jurnal)</option>
+                            <option value="ap_user">AP Maker (Input AP)</option>
+                            <option value="ar_user">AR Maker (Input AR)</option>
+                            <option value="fa_user">FA Maker (Input FA)</option>
+                            <option value="purchasing">PO Maker (Input PO & Vendor)</option>
+
+                            <option value="approver">Approver (Persetujuan/Posting)</option>
+                            <option value="super_user">Super User (Administrator)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 mt-3 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="resetForm()"
+                        class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1 rounded text-[11px] font-medium border border-slate-300">Batal
+                        / Reset</button>
+                    <button type="button" onclick="simpanUser()" id="btn-simpan"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1 rounded text-[11px] font-semibold shadow-xs">💾
+                        Simpan User</button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded border border-slate-200 shadow-sm overflow-hidden">
+                <div
+                    class="px-3 py-1.5 bg-slate-50 border-b border-slate-200 font-bold text-slate-600 text-[10px] uppercase">
+                    Daftar Pengguna Sistem (Users)
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-100 text-slate-500 text-[10px]">
+                            <tr>
+                                <th class="py-1.5 px-3 border-b font-semibold">ID</th>
+                                <th class="py-1.5 px-3 border-b font-semibold">Username</th>
+                                <th class="py-1.5 px-3 border-b font-semibold">Nama Karyawan</th>
+                                <th class="py-1.5 px-3 border-b font-semibold">Role / Hak Akses</th>
+                                <th class="py-1.5 px-3 border-b font-semibold text-center w-24">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabel-user-body" class="divide-y divide-slate-100 text-[11px]">
+                            <tr>
+                                <td colspan="5" class="py-6 text-center text-slate-400 italic">Memuat data user...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // 🔒 SISTEM PROTEKSI HAK AKSES (RBAC)
+        // ==========================================
+        const userRole = localStorage.getItem('role');
+
+        // 1. Cek Sesi Login
+        if (!userRole) {
+            alert("Anda belum login! Silakan login terlebih dahulu.");
+            window.location.href = '/';
+        }
+
+        // 2. Proteksi Halaman Posting Jurnal (/posting)
+        // Role 'maker' DILARANG MASUK
+        if (window.location.pathname.includes('/posting') && userRole === 'maker') {
+            alert("⛔ AKSES DITOLAK: Role 'Maker' tidak memiliki akses ke halaman Posting Jurnal.");
+            window.location.href = '/dashboard';
+        }
+
+        // 3. Proteksi Halaman Setup User (/setup_user)
+        // Khusus untuk 'super_user' saja
+        if (window.location.pathname.includes('/setup_user') && userRole !== 'approver' && userRole !== 'super_user') {
+            alert("⛔ AKSES DITOLAK: Halaman Setup System khusus untuk Super User / Administrator.");
+            window.location.href = '/dashboard';
+        }
+
+        // 4. Sembunyikan Menu Sidebar Sesuai Role
+        document.addEventListener("DOMContentLoaded", () => {
+            // Normalisasi Role ke huruf kecil tanpa spasi
+            const rawRole = localStorage.getItem('role') || '';
+            const role = rawRole.trim().toLowerCase();
+
+            const menuPosting = document.getElementById('menu-posting');
+            const menuSetup = document.getElementById('section-setup-system');
+
+            // 1. HANYA 'approver' DAN 'super_user' YANG BOLEH LIHAT MENU POSTING
+            if (role !== 'approver' && role !== 'super_user') {
+                if (menuPosting) menuPosting.remove(); // Hapus permanen dari DOM
+            }
+
+            // 2. HANYA 'super_user' YANG BOLEH LIHAT MENU SETUP SYSTEM
+            if (role !== 'approver' && role !== 'super_user') {
+                if (menuSetup) menuSetup.remove(); // Hapus permanen dari DOM
+            }
+        });
+        // ==========================================
+
+        // PROTEKSI KHUSUS SUPER USER
+        if (!userRole) {
+            window.location.href = '/';
+        } else if (userRole !== 'super_user' && userRole !== 'approver') {
+            alert("⛔ AKSES DITOLAK: Halaman Setup System khusus untuk Super User / Administrator.");
+            window.location.href = '/dashboard';
+        }
+
+        let cacheUsers = [];
+
+        // 1. MEMUAT DAFTAR USER DARI SERVER
+        async function muatUsers() {
+            try {
+                const res = await fetch('/api/users');
+                const data = await res.json();
+                cacheUsers = data;
+                const tbody = document.getElementById('tabel-user-body');
+                tbody.innerHTML = "";
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400 italic">Belum ada user terdaftar.</td></tr>';
+                    return;
+                }
+
+                data.forEach(u => {
+                    let badgeColor = "bg-slate-100 text-slate-700";
+                    if (u.role === 'maker') badgeColor = "bg-blue-100 text-blue-700";
+                    if (u.role === 'approver') badgeColor = "bg-amber-100 text-amber-700";
+                    if (u.role === 'super_user') badgeColor = "bg-purple-100 text-purple-700";
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 border-b border-slate-100">
+                            <td class="py-1.5 px-3 font-mono text-slate-400">${u.id}</td>
+                            <td class="py-1.5 px-3 font-bold text-indigo-700">${u.username}</td>
+                            <td class="py-1.5 px-3 text-slate-700 font-medium">${u.nama_karyawan}</td>
+                            <td class="py-1.5 px-3"><span class="${badgeColor} text-[9px] font-bold px-2 py-0.5 rounded uppercase">${u.role}</span></td>
+                            <td class="py-1.5 px-3 text-center">
+                                <button onclick="editUser(${u.id})" class="text-amber-600 hover:bg-amber-50 px-1 rounded font-semibold text-[10px]">✏️ Edit</button>
+                                ${u.username !== 'admin' ? `<button onclick="hapusUser(${u.id})" class="text-rose-600 hover:bg-rose-50 px-1 rounded font-semibold text-[10px]">❌ Hapus</button>` : ''}
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (e) { console.error("Gagal memuat user:", e); }
+        }
+
+        // 2. MENYIMPAN USER BARU / UPDATE USER LAMA
+        async function simpanUser() {
+            const idVal = document.getElementById('user_id').value;
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const nama_karyawan = document.getElementById('nama_karyawan').value.trim();
+            const role = document.getElementById('role').value;
+
+            if (!username || !password || !nama_karyawan) {
+                alert("Semua kolom (Username, Password, Nama Karyawan) wajib diisi!");
+                return;
+            }
+
+            const payload = {
+                id: idVal ? parseInt(idVal) : null,
+                username: username,
+                password: password,
+                nama_karyawan: nama_karyawan,
+                role: role
+            };
+
+            try {
+                const res = await fetch('/api/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+
+                if (res.ok) {
+                    alert("✅ " + result.pesan);
+                    resetForm();
+                    muatUsers();
+                } else {
+                    alert("❌ " + (result.detail || "Gagal menyimpan user."));
+                }
+            } catch (e) {
+                console.error(e);
+                alert("⚠️ Gagal terhubung ke server.");
+            }
+        }
+
+        // 3. EDIT USER
+        function editUser(id) {
+            const u = cacheUsers.find(x => x.id === id);
+            if (!u) return;
+
+            document.getElementById('user_id').value = u.id;
+            document.getElementById('username').value = u.username;
+            document.getElementById('password').value = u.password;
+            document.getElementById('nama_karyawan').value = u.nama_karyawan;
+            document.getElementById('role').value = u.role;
+
+            document.getElementById('form-title').innerText = "✏️ Edit Data User: " + u.username;
+            document.getElementById('btn-simpan').innerText = "💾 Update User";
+        }
+
+        // 4. HAPUS USER
+        async function hapusUser(id) {
+            if (!confirm("Yakin ingin menghapus user ini?")) return;
+            try {
+                const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+                const result = await res.json();
+                if (res.ok) {
+                    alert("✅ " + result.pesan);
+                    muatUsers();
+                } else { alert("❌ " + result.detail); }
+            } catch (e) { alert("Gagal menghapus."); }
+        }
+
+        // 5. RESET FORM
+        function resetForm() {
+            document.getElementById('user_id').value = "";
+            document.getElementById('username').value = "";
+            document.getElementById('password').value = "";
+            document.getElementById('nama_karyawan').value = "";
+            document.getElementById('role').value = "maker";
+            document.getElementById('form-title').innerText = "➕ Tambah User Baru";
+            document.getElementById('btn-simpan').innerText = "💾 Simpan User";
+        }
+
+        // INIT
+        muatUsers();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Laba Rugi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* PENGATURAN PRINT PDF / PRINTER */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 12mm 15mm;
+            }
+
+            body {
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            /* Sembunyikan elemen yang tidak perlu dicetak */
+            .no-print,
+            header,
+            aside,
+            .filter-box {
+                display: none !important;
+            }
+
+            /* Lepas semua batasan ukuran layar agar muat di kertas */
+            .print-container,
+            main {
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 auto !important;
+                max-width: 100% !important;
+                width: 100% !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+
+            /* Rapatkan jarak antar item agar muat 1 halaman */
+            .py-2 {
+                padding-top: 4px !important;
+                padding-bottom: 4px !important;
+            }
+
+            .mb-6 {
+                margin-bottom: 10px !important;
+            }
+
+            .mb-2 {
+                margin-bottom: 4px !important;
+            }
+
+            .text-sm {
+                font-size: 9pt !important;
+            }
+
+            /* Kecilkan box Saldo Akhir */
+            .py-4 {
+                padding-top: 8px !important;
+                padding-bottom: 8px !important;
+            }
+
+            .mt-4 {
+                margin-top: 10px !important;
+            }
+
+            h2.text-xl {
+                font-size: 14pt !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-slate-100 text-slate-800 p-6 font-sans">
+    <div
+        class="no-print bg-white border rounded-lg p-5 mb-6 shadow-sm max-w-3xl mx-auto flex justify-between items-center">
+        <div class="flex flex-col items-center gap-1">
+            <h1 class="text-lg-center font-bold"> 📋Profit & Loss</h1>
+        </div>
+        <div class="flex gap-2 items-end">
+            <div><label class="block text-[10px] ">Mulai</label><input type="date" id="tgl_mulai"
+                    class="border rounded px-2 py-1 text-xs"></div>
+            <div><label class="block text-[10px] ">Sampai</label><input type="date" id="tgl_selesai"
+                    class="border rounded px-2 py-1 text-xs"></div>
+            <div>
+                <label class="block text-[11px] mb-1 font-semibold text-slate-600">Cabang</label>
+                <select id="kode_cabang" onchange="loadProfitLoss()" class="border border-slate-300 rounded px-2 py-1 text-sm bg-white outline-none">
+                    <option value="SEMUA" selected>Semua Cabang</option>
+                </select>
+            </div>
+            <button onclick="loadProfitLoss()"
+                class="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-bold">Tampilkan</button>
+            <button onclick="window.print()"
+                class="bg-slate-700 text-white px-4 py-1.5 rounded text-sm font-bold">Cetak</button>
+        </div>
+    </div>
+
+    <div class="border-b-2 border-black pb-4 mb-4 grid grid-cols-12 items-start gap-2">
+    
+        <!-- KIRI: Logo & Nama Usaha (Col-5 agar tidak mendorong judul terlalu jauh) -->
+        <div class="col-span-5 flex items-start gap-2.5">
+            <img id="kop_logo" src="" alt="Logo" class="h-8 w-auto max-w-[90px] object-contain hidden" onerror="this.classList.add('hidden')">
+            <h1 id="kop_nama_usaha" class="text-[11px] font-bold uppercase tracking-wide text-blue-800 leading-tight pt-0.5 whitespace-nowrap">
+                <!-- Terisi dari DB -->
+            </h1>
+        </div>
+
+        <!-- TENGAH: Judul Laporan & Sub Judul Cabang Dinamis (Col-3 atau Col-4) -->
+        <div class="col-span-3 text-center translate-y-[12px]">
+            <h2 class="text-sm font-black uppercase tracking-wider text-black">
+                LABA RUGI
+            </h2>
+            <p id="subJudulCabang" class="text-[11px] font-semibold text-slate-600 mt-0.5">
+                -
+            </p>
+        </div>
+
+        <!-- KANAN: Periode & Keterangan (Col-4) -->
+        <div class="col-span-4 text-right text-xs translate-y-[12px]">
+            <p id="subJudulTanggal" class="font-bold text-slate-800 font-mono">Periode: -</p>
+            <p class="text-[10px] text-slate-400 italic mt-0.5">Mata Uang: IDR (Rupiah)</p>
+        </div>
+    </div>
+
+    <div>
+        <!-- 1. PENDAPATAN & HPP -->
+        <h3 class="font-bold text-slate-800 uppercase border-b border-slate-300 pb-1 mb-2">Pendapatan</h3>
+        <div class="flex justify-between py-2 border-b border-slate-100 pl-4">
+            <span>Pendapatan Usaha</span><span id="totPendapatan" class="font-mono">Rp 0</span>
+        </div>
+        <div class="flex justify-between py-2 border-b border-slate-100 pl-4">
+            <span>Harga Pokok Penjualan</span><span id="totHpp" class="font-mono text-rose-600">(Rp 0)</span>
+        </div>
+        <div class="flex justify-between font-bold text-blue-900 bg-blue-50 px-4 py-2 mt-2 mb-6">
+            <span>LABA KOTOR</span><span id="labaKotor" class="font-mono">Rp 0</span>
+        </div>
+
+        <!-- 2. BIAYA ADM & UMUM -->
+        <h3 class="font-bold text-slate-800 uppercase border-b border-slate-300 pb-1 mb-2">Biaya Adm. & Umum</h3>
+        <div class="flex justify-between py-2 border-b border-slate-100 pl-4">
+            <span>Total Beban Operasional</span><span id="totBebanAdm" class="font-mono text-rose-600">(Rp 0)</span>
+        </div>
+        <div class="flex justify-between font-bold text-blue-900 bg-blue-50 px-4 py-2 mt-2 mb-6">
+            <span>LABA OPERASIONAL</span><span id="labaOperasional" class="font-mono">Rp 0</span>
+        </div>
+
+        <!-- 3. LAIN-LAIN -->
+        <h3 class="font-bold text-slate-800 uppercase border-b border-slate-300 pb-1 mb-2">Pendapatan / Biaya Lainnya
+        </h3>
+        <div class="flex justify-between py-2 border-b border-slate-100 pl-4">
+            <span>Pendapatan Lainnya</span><span id="totPendLain" class="font-mono">Rp 0</span>
+        </div>
+        <div class="flex justify-between py-2 border-b border-slate-100 pl-4">
+            <span>Beban Lainnya (Termasuk Pajak)</span><span id="totBebanLain" class="font-mono text-rose-600">(Rp
+                0)</span>
+        </div>
+        <div class="flex justify-between font-bold text-slate-700 bg-slate-100 px-4 py-2 mt-2 mb-6">
+            <span>Total Lain-lain</span><span id="totLainLain" class="font-mono">Rp 0</span>
+        </div>
+
+        <!-- LABA BERSIH -->
+        <div id="boxLabaBersih"
+            class="flex justify-between items-center font-black text-lg bg-emerald-600 text-white rounded py-4 px-5 mt-4">
+            <span id="lblLabaBersih">LABA BERSIH</span>
+            <span id="labaBersih" class="font-mono tracking-wider">Rp 0</span>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('tgl_mulai').valueAsDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+        document.getElementById('tgl_selesai').valueAsDate = new Date();
+
+        const formatRp = (val, isExpense = false) => {
+            if (!val) return "Rp 0";
+            const res = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Math.abs(val));
+            return (val < 0 || (isExpense && val > 0)) ? `(${res})` : res;
+        };
+
+        async function muatMasterCabang() {
+            try {
+                const res = await fetch('/api/cabang');
+                if (res.ok) {
+                    const listCabang = await res.json();
+                    const selCabang = document.getElementById('kode_cabang');
+                    if (selCabang && listCabang.length > 0) {
+                        selCabang.innerHTML = '<option value="SEMUA" selected>Semua Cabang</option>';
+                        listCabang.forEach(c => {
+                            selCabang.innerHTML += `<option value="${c.kode}">${c.kode} - ${c.nama}</option>`;
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn("Gagal memuat cabang:", e);
+            }
+        }
+
+        // 2. Load data Laba Rugi
+        async function loadProfitLoss() {
+            const start = document.getElementById('tgl_mulai').value;
+            const end = document.getElementById('tgl_selesai').value;
+            const elCabang = document.getElementById('kode_cabang');
+            
+            const cabangKode = elCabang ? elCabang.value : 'SEMUA';
+            const cabangNama = elCabang && elCabang.selectedIndex >= 0 ? elCabang.options[elCabang.selectedIndex].text : 'Semua Cabang';
+
+            // Update Label Tanggal & Cabang di Kop
+            const lblTanggal = document.getElementById('subJudulTanggal');
+            if (lblTanggal) lblTanggal.innerText = `Periode: ${start} s/d ${end}`;
+
+            const lblCabang = document.getElementById('subJudulCabang');
+            if (lblCabang) lblCabang.innerText = cabangNama;
+
+            try {
+                const res = await fetch(`/api/profit_loss?tgl_mulai=${encodeURIComponent(start)}&tgl_selesai=${encodeURIComponent(end)}&kode_cabang=${encodeURIComponent(cabangKode)}&_t=${Date.now()}`);
+                if (!res.ok) return;
+                const responseData = await res.json();
+                const data = responseData.data || responseData;
+
+                // Render nilai
+                if (document.getElementById('totPendapatan')) document.getElementById('totPendapatan').innerText = formatRp(data.tot_pendapatan || 0);
+                if (document.getElementById('totHpp')) document.getElementById('totHpp').innerText = formatRp(data.tot_hpp || 0, true);
+                if (document.getElementById('labaKotor')) document.getElementById('labaKotor').innerText = formatRp(data.laba_kotor || 0);
+
+                if (document.getElementById('totBebanAdm')) document.getElementById('totBebanAdm').innerText = formatRp(data.tot_beban_adm || data.tot_beban_op || 0, true);
+                if (document.getElementById('labaOperasional')) document.getElementById('labaOperasional').innerText = formatRp(data.laba_operasional || data.laba_operasi || 0);
+
+                if (document.getElementById('totPendLain')) document.getElementById('totPendLain').innerText = formatRp(data.tot_pendapatan_lain || data.tot_pend_lain || 0);
+                if (document.getElementById('totBebanLain')) document.getElementById('totBebanLain').innerText = formatRp(data.tot_beban_lain || 0, true);
+                if (document.getElementById('totLainLain')) document.getElementById('totLainLain').innerText = formatRp(data.total_lain_lain || data.pend_beban_lain || 0);
+
+                if (document.getElementById('labaBersih')) document.getElementById('labaBersih').innerText = formatRp(data.laba_bersih || 0);
+
+                const box = document.getElementById('boxLabaBersih');
+                const lblLaba = document.getElementById('lblLabaBersih');
+                if (box && lblLaba) {
+                    if ((data.laba_bersih || 0) < 0) {
+                        box.className = "flex justify-between items-center font-black text-lg bg-rose-600 text-white rounded py-4 px-5 mt-4";
+                        lblLaba.innerText = "RUGI BERSIH";
+                    } else {
+                        box.className = "flex justify-between items-center font-black text-lg bg-emerald-600 text-white rounded py-4 px-5 mt-4";
+                        lblLaba.innerText = "LABA BERSIH";
+                    }
+                }
+            } catch (e) {
+                console.error("Gagal memuat laba rugi:", e);
+            }
+        }
+
+        // Inisialisasi awal saat halaman dibuka
+        document.addEventListener("DOMContentLoaded", async () => {
+            if (typeof muatKopPerusahaan === 'function') muatKopPerusahaan();
+            await muatMasterCabang();
+            await loadProfitLoss();
+        });
+
+        async function muatKopPerusahaan() {
+            try {
+                const res = await fetch('/api/profil_usaha');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                // 1. Tampilkan Nama Usaha
+                const elNama = document.getElementById('kop_nama_usaha');
+                if (elNama && data.nama_usaha) {
+                    elNama.innerText = data.nama_usaha;
+                }
+
+                // 2. Tampilkan Logo Usaha
+                const elLogo = document.getElementById('kop_logo');
+                if (elLogo && data.logo_path) {
+                    let cleanUrl = data.logo_path.replace(/^\/web\//, '/');
+                    elLogo.src = cleanUrl + '?t=' + Date.now();
+                    elLogo.onload = () => elLogo.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.warn("Gagal memuat kop profil perusahaan:", err);
+            }
+        }
+
+        // Jalankan otomatis saat halaman dibuka
+        document.addEventListener("DOMContentLoaded", () => {
+            muatKopPerusahaan();
+        });
+    </script>
+</body>
+
+</html>

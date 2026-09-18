@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pencadangan & Pemulihan Database - SAP BoB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <script src="/role_akses.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; font-size: 12px; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* PENGAMAN MODAL BACKUP (ANTI GAGAL KLIK) */
+        .modal-backup-backdrop {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(2px);
+            z-index: 99999 !important; /* Di atas seluruh elemen */
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body class="h-full flex flex-col text-slate-700">
+
+    <!-- Kontainer Halaman -->
+    <main class="flex-1 overflow-y-auto p-6 max-w-6xl w-full mx-auto space-y-6">
+
+        <!-- Header Halaman -->
+        <div class="flex items-center justify-between border-b border-slate-200 pb-4">
+            <div>
+                <h1 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <span>🛡️</span> Pencadangan, Pemindahan & Pemulihan Database (AES-256)
+                </h1>
+                <p class="text-slate-500 text-[11px] mt-0.5">
+                    Kelola snapshot database terenkripsi, pindahkan ke media penyimpanan eksternal, atau bersihkan arsip lama.
+                </p>
+            </div>
+            <a href="/dashboard" class="text-indigo-600 hover:text-indigo-800 font-medium text-xs">
+                &larr; Kembali ke Dashboard
+            </a>
+        </div>
+
+        <!-- Panel Kontrol Backup -->
+        <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Eksekusi Snapshot Instan</h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">
+                    Membuat salinan database terenkripsi AES-256 secara langsung dan aman.
+                </p>
+            </div>
+            <button onclick="prosesBackupDatabase()" id="btn-backup" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded shadow transition-all flex items-center justify-center gap-2">
+                <span>📦</span> Buat Cadangan Sekarang
+            </button>
+        </div>
+
+        <!-- Tabel Riwayat File Backup -->
+        <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-3 bg-slate-100 border-b border-slate-200 flex justify-between items-center">
+                <span class="font-bold text-slate-700 uppercase tracking-wider text-[11px]">
+                    Daftar File Cadangan Tersedia (<span id="total-file">0</span>)
+                </span>
+                <button onclick="muatDaftarBackup()" class="text-indigo-600 hover:text-indigo-800 font-semibold text-[11px] flex items-center gap-1">
+                    🔄 Segarkan
+                </button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-50 text-slate-600 border-b text-[11px]">
+                        <tr>
+                            <th class="p-3">Nama Berkas Cadangan (.enc)</th>
+                            <th class="p-3">Ukuran File</th>
+                            <th class="p-3">Waktu Pembuatan</th>
+                            <th class="p-3 text-center w-56">Tindakan</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel-list-backup" class="divide-y divide-slate-100 font-mono text-[11px]">
+                        <tr>
+                            <td colspan="4" class="p-4 text-center text-slate-400 font-sans italic">Memuat berkas cadangan...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL PINDAH DISK / FOLDER -->
+    <div id="modal-move" class="modal-backup-backdrop" style="display: none;">
+        <div class="bg-white rounded-lg shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden mx-4">
+            <div class="p-3.5 bg-slate-100 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                    <span>🚚</span> Pindahkan Cadangan ke Disk Lain
+                </h3>
+                <button type="button" onclick="window.tutupModalMove()" class="text-slate-400 hover:text-slate-700 text-lg font-bold leading-none cursor-pointer">&times;</button>
+            </div>
+            <div class="p-4 space-y-3">
+                <div>
+                    <label class="block text-[11px] text-slate-500 mb-1">Nama Berkas Cadangan:</label>
+                    <input type="text" id="move-file-name" readonly class="w-full bg-slate-100 border border-slate-200 rounded p-2 text-xs font-mono text-indigo-700 font-bold">
+                </div>
+                <div>
+                    <label class="block text-[11px] text-slate-700 font-semibold mb-1">Folder / Drive Tujuan:</label>
+                    <input type="text" id="move-target-dir" placeholder="Contoh: D:\Cadangan_SAP atau E:\Flashdisk" class="w-full bg-white border border-slate-300 rounded p-2 text-xs focus:outline-none focus:border-indigo-500">
+                    <p class="text-[10px] text-slate-400 mt-1">Sistem otomatis membuat folder tujuan jika belum ada di disk tersebut.</p>
+                </div>
+            </div>
+            <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+                <button type="button" onclick="window.tutupModalMove()" class="px-3 py-1.5 rounded border border-slate-300 text-slate-600 hover:bg-slate-100 text-xs cursor-pointer">Batal</button>
+                <button type="button" onclick="window.eksekusiPindahDisk()" id="btn-konfirm-move" class="px-4 py-1.5 rounded bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow cursor-pointer">
+                    Pindahkan Sekarang
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIKA JAVASCRIPT -->
+    <script>
+        // 1. Eksekusi Backup Baru
+        async function prosesBackupDatabase() {
+            const btn = document.getElementById('btn-backup');
+            btn.innerHTML = "⏳ Mengenkripsi snapshot...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/system/backup', { method: 'POST' });
+                const result = await res.json();
+                
+                if (res.ok) {
+                    alert("✅ " + result.pesan + "\n\nNama File: " + result.data.file_name);
+                    muatDaftarBackup();
+                } else {
+                    alert("❌ Gagal membuat backup: " + (result.detail || "Terjadi kesalahan server"));
+                }
+            } catch (e) {
+                alert("⚠️ Gagal menghubungi server. Pastikan aplikasi backend berjalan.");
+            } finally {
+                btn.innerHTML = "<span>📦</span> Buat Cadangan Sekarang";
+                btn.disabled = false;
+            }
+        }
+
+        // 2. Ambil Riwayat File Backup dari Server
+        async function muatDaftarBackup() {
+            const tbody = document.getElementById('tabel-list-backup');
+            const totalBadge = document.getElementById('total-file');
+
+            try {
+                const res = await fetch('/api/system/backups');
+                const data = await res.json();
+
+                tbody.innerHTML = '';
+
+                if (!res.ok || !data.backups || data.backups.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-400 font-sans italic">Belum ada file cadangan yang tersimpan di direktori server.</td></tr>';
+                    totalBadge.innerText = '0';
+                    return;
+                }
+
+                totalBadge.innerText = data.backups.length;
+
+                data.backups.forEach(b => {
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="p-3 text-indigo-700 font-bold">${b.file_name}</td>
+                            <td class="p-3 text-slate-600">${b.ukuran}</td>
+                            <td class="p-3 text-slate-500">${b.waktu_buat}</td>
+                            <td class="p-3 text-center whitespace-nowrap">
+                                <button onclick="bukaModalMove('${b.file_name}')" 
+                                        class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-[10px] font-sans font-semibold transition-all mr-1 shadow-xs" title="Pindahkan ke Disk/Folder Lain">
+                                    📂 Pindah
+                                </button>
+                                <button onclick="prosesRestoreDatabase('${b.file_name}')" 
+                                        class="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded text-[10px] font-sans font-semibold transition-all mr-1 shadow-xs" title="Pulihkan Data Aktif">
+                                    🔄 Restore
+                                </button>
+                                <button onclick="prosesHapusBackup('${b.file_name}')" 
+                                        class="bg-rose-500 hover:bg-rose-600 text-white px-2 py-1 rounded text-[10px] font-sans font-semibold transition-all shadow-xs" title="Hapus Permanen">
+                                    🗑️ Hapus
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-rose-500 font-sans">Gagal mengambil daftar cadangan dari server.</td></tr>';
+            }
+        }
+
+        // 3. Modal & Eksekusi Pindah Disk (Move)
+        window.bukaModalMove = function(fileName) {
+            const modal = document.getElementById('modal-move');
+            const inputName = document.getElementById('move-file-name');
+            const inputTarget = document.getElementById('move-target-dir');
+            
+            if (modal && inputName) {
+                inputName.value = fileName;
+                inputTarget.value = "";
+                modal.style.display = "flex"; // Memaksa modal muncul
+                setTimeout(() => inputTarget.focus(), 50);
+            } else {
+                alert("Elemen modal tidak ditemukan di browser!");
+            }
+        };
+
+        // Tutup Modal
+        window.tutupModalMove = function() {
+            const modal = document.getElementById('modal-move');
+            if (modal) {
+                modal.style.display = "none";
+            }
+        };
+
+        // Eksekusi Pindah ke Disk Lain
+        window.eksekusiPindahDisk = async function() {
+            const fileName = document.getElementById('move-file-name').value;
+            const targetDirInput = document.getElementById('move-target-dir').value.trim();
+            const btn = document.getElementById('btn-konfirm-move');
+
+            if (!targetDirInput) {
+                alert("Harap tentukan folder atau drive tujuan!");
+                return;
+            }
+
+            // Normalisasi slash agar aman dari escape backslash JSON Windows
+            const sanitizedPath = targetDirInput.replace(/\\/g, "/");
+
+            btn.disabled = true;
+            btn.innerText = "⏳ Sedang Memindahkan...";
+
+            try {
+                const res = await fetch('/api/system/backup/move', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        file_name: fileName,
+                        target_directory: sanitizedPath
+                    })
+                });
+
+                const result = await res.json();
+
+                if (res.ok) {
+                    alert("✅ " + result.pesan);
+                    window.tutupModalMove();
+                    muatDaftarBackup();
+                } else {
+                    alert("❌ Gagal memindahkan: " + (result.detail || "Izin folder ditolak atau disk tidak dapat diakses."));
+                }
+            } catch (e) {
+                console.error("Error pindah file:", e);
+                alert("⚠️ Kesalahan koneksi ke server saat memindahkan berkas.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Pindahkan Sekarang";
+            }
+        };
+
+        // 4. Eksekusi Hapus File Backup Secara Manual
+        async function prosesHapusBackup(fileName) {
+            const konfirmasi = confirm(
+                "⚠️ PERINGATAN!\n\n" +
+                "Apakah Anda yakin ingin MENGHAPUS PERMANEN file cadangan:\n" + fileName + "?\n\n" +
+                "File ini tidak dapat dikembalikan lagi setelah dihapus."
+            );
+
+            if (!konfirmasi) return;
+
+            try {
+                const res = await fetch(`/api/system/backup/${encodeURIComponent(fileName)}`, {
+                    method: 'DELETE'
+                });
+                const result = await res.json();
+
+                if (res.ok) {
+                    alert("🗑️ " + result.pesan);
+                    muatDaftarBackup();
+                } else {
+                    alert("❌ Gagal menghapus file: " + (result.detail || "Kesalahan server"));
+                }
+            } catch (e) {
+                alert("⚠️ Gagal menghubungi server.");
+            }
+        }
+
+        // 5. Eksekusi Restore Database
+        async function prosesRestoreDatabase(fileName) {
+            const konfirmasi = confirm(
+                "⚠️ PERINGATAN KRUSIAL!\n\n" +
+                "Apakah Anda yakin ingin memulihkan database dari file:\n" + fileName + "\n\n" +
+                "Data aktif saat ini akan digantikan seluruhnya oleh snapshot cadangan ini."
+            );
+
+            if (!konfirmasi) return;
+
+            try {
+                const res = await fetch('/api/system/restore', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ file_name: fileName })
+                });
+
+                const result = await res.json();
+                if (res.ok) {
+                    alert("🎉 Database berhasil dipulihkan!\nSistem akan merefresh halaman.");
+                    window.location.reload();
+                } else {
+                    alert("❌ Gagal memulihkan database: " + (result.detail || "Kesalahan dekripsi"));
+                }
+            } catch (e) {
+                alert("⚠️ Gagal menghubungi server saat proses restore.");
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", muatDaftarBackup);
+    </script>
+</body>
+</html>

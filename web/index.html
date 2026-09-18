@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Sistem Akuntansi Modern</title>
+    
+    <script type="text/javascript" src="/eel.js"></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6 font-sans">
+
+    <div class="max-w-5xl mx-auto bg-white p-6 rounded-lg shadow-md border border-gray-200">
+        
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-800">Entry Jurnal Umum</h2>
+            <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">Mode: Entry Baru</span>
+        </div>
+
+        <div class="grid grid-cols-4 gap-4 mb-4 text-sm">
+            <div>
+                <label class="block text-gray-700 font-bold mb-1">Kode Voucher</label>
+                <select class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option>JV - Jurnal Umum</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-gray-700 font-bold mb-1">Tanggal</label>
+                <input type="date" class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="col-span-2">
+                <label class="block text-gray-700 font-bold mb-1">Keterangan Baris</label>
+                <input type="text" placeholder="Masukkan keterangan..." class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+        </div>
+
+        <button onclick="panggilPython()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm transition-colors">
+            ⬇️ Muat Data via Python
+        </button>
+
+        <div class="overflow-x-auto mt-6 border rounded">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-gray-50 text-gray-600">
+                    <tr>
+                        <th class="p-3 border-b">Kode Akun</th>
+                        <th class="p-3 border-b">Keterangan Baris</th>
+                        <th class="p-3 border-b text-right">Debit (Rp)</th>
+                        <th class="p-3 border-b text-right">Kredit (Rp)</th>
+                    </tr>
+                </thead>
+                <tbody id="tabel-body" class="text-gray-800">
+                    <tr>
+                        <td colspan="4" class="p-4 text-center text-gray-500">Belum ada data jurnal.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function panggilPython() {
+            // Memanggil fungsi ambil_data_jurnal() yang ada di Python
+            let data = await eel.ambil_data_jurnal()();
+            
+            let tbody = document.getElementById("tabel-body");
+            tbody.innerHTML = ""; // Bersihkan tabel
+            
+            // Looping data dari Python dan masukkan ke tabel HTML
+            data.forEach(baris => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="p-3 border-b font-mono">${baris.akun}</td>
+                        <td class="p-3 border-b">${baris.deskripsi}</td>
+                        <td class="p-3 border-b text-right text-green-600 font-bold">${baris.debit.toLocaleString('id-ID')}</td>
+                        <td class="p-3 border-b text-right text-red-600 font-bold">${baris.kredit.toLocaleString('id-ID')}</td>
+                    </tr>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>

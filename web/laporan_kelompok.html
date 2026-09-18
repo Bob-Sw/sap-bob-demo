@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Keuangan Per Kelompok COA - Modul SAP BoB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body class="h-full flex overflow-hidden text-slate-700 text-xs">
+
+    <!-- SIDEBAR KONSISTEN -->
+    <aside
+        class="w-48 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800 shadow-xl z-20">
+        <div class="h-12 px-3 bg-slate-950/80 flex items-center gap-2 border-b border-slate-800/80">
+            <img src="/Logo_SAP.png" alt="Logo" class="h-6 w-auto object-contain"
+                onerror="this.onerror=null; this.src='Logo_SAP.png';">
+            <h1 class="text-xs font-bold text-white tracking-wide">SAP BoB</h1>
+        </div>
+        <nav class="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
+            <div class="px-2 pb-1.5 text-[9px] font-semibold text-slate-500 uppercase tracking-wider">Modul Akuntansi
+            </div>
+            <a href="/dashboard"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>📊</span>
+                Dashboard</a>
+            <a href="/gl"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>📓</span>
+                Jurnal Umum</a>
+            <a href="/posting"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>✅</span>
+                Posting Pending</a>
+            <a href="/buku_besar"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>📖</span>
+                Buku Besar</a>
+            <a href="/laporan_kelompok"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-semibold text-white bg-indigo-600/90 shadow-sm transition-all mt-0.5"><span>📑</span>
+                Laporan Per Kelompok</a>
+
+            <div class="pt-3 border-t border-slate-800/80 mt-2">
+                <div class="px-2 pb-1.5 text-[9px] font-semibold text-amber-500 uppercase tracking-wider">Setup System
+                </div>
+                <a href="/setup_coa"
+                    class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>🗂️</span>
+                    Chart of Account</a>
+            </div>
+        </nav>
+        <div class="p-2 bg-slate-950/60 border-t border-slate-800/80">
+            <button onclick="localStorage.clear(); window.location.href='/';"
+                class="w-full bg-slate-800 hover:bg-rose-600/80 text-slate-300 hover:text-white py-1.5 px-2 rounded text-[10px] font-medium transition-all flex items-center justify-center gap-1.5"><span>🚪</span>
+                Logout</button>
+        </div>
+    </aside>
+
+    <!-- KONTEN UTAMA -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-100/70">
+        <header
+            class="h-10 bg-white border-b border-slate-200/80 px-4 flex items-center justify-between shadow-xs z-10 flex-shrink-0">
+            <div class="flex items-center gap-1.5 text-[11px]">
+                <span class="text-slate-400">Laporan</span> <span class="text-slate-300">/</span>
+                <h2 class="font-semibold text-slate-800">Laporan Keuangan Berbasis Kelompok COA</h2>
+            </div>
+            <button onclick="window.print()"
+                class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1 rounded text-[10px] font-semibold transition-colors border border-slate-300">
+                🖨️ Cetak / PDF
+            </button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-3 space-y-3">
+
+            <!-- PANEL FILTER -->
+            <div class="bg-white rounded border border-slate-200 shadow-sm p-3">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Dari Tanggal</label>
+                        <input type="date" id="tgl_mulai"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] focus:bg-white focus:border-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Sampai Tanggal</label>
+                        <input type="date" id="tgl_selesai"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] focus:bg-white focus:border-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Cabang</label>
+                        <select id="kode_cabang"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] focus:bg-white focus:border-indigo-500 outline-none">
+                            <option value="SEMUA">Semua Cabang (Konsolidasi)</option>
+                            <option value="HO">HO - Head Office</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button onclick="muatLaporanKelompok()"
+                            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1.5 px-3 rounded text-[11px] transition-all shadow-xs">
+                            🔍 Tampilkan Ringkasan
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AREA TAMPILAN LAPORAN -->
+            <div
+                class="bg-white rounded border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[60vh] p-4">
+                <div class="text-center mb-4 pb-3 border-b border-slate-200">
+                    <h3 class="font-bold text-slate-800 text-sm uppercase">Laporan Laba Rugi (Ringkasan Kelompok Akun)
+                    </h3>
+                    <p id="info-periode" class="text-slate-500 text-[11px] mt-0.5">Periode: -</p>
+                </div>
+
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-100 text-slate-600 text-[10px]">
+                            <tr>
+                                <th class="py-2 px-3 border-b border-slate-200 uppercase">Kelompok Akun / Kategori</th>
+                                <th class="py-2 px-3 border-b border-slate-200 uppercase text-center">Jumlah Akun Detail
+                                </th>
+                                <th class="py-2 px-3 border-b border-slate-200 uppercase text-right">Total Saldo (Rp)
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabel-laporan-body" class="divide-y divide-slate-100 text-[11px]">
+                            <tr>
+                                <td colspan="3" class="py-8 text-center text-slate-400 italic">Silakan tentukan filter
+                                    lalu klik Tampilkan Ringkasan.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        const formatRp = (angka) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+
+        document.addEventListener("DOMContentLoaded", () => {
+            // Set tanggal default awal bulan s/d hari ini
+            const date = new Date();
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            document.getElementById('tgl_mulai').value = `${yyyy}-${mm}-01`;
+            document.getElementById('tgl_selesai').value = date.toISOString().split('T')[0];
+            muatLaporanKelompok();
+        });
+
+        async function muatLaporanKelompok() {
+            const tglMulai = document.getElementById('tgl_mulai').value;
+            const tglSelesai = document.getElementById('tgl_selesai').value;
+            const cabang = document.getElementById('kode_cabang').value;
+            const tbody = document.getElementById('tabel-laporan-body');
+
+            tbody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-slate-400 italic">Memproses data kelompok laporan...</td></tr>';
+            document.getElementById('info-periode').innerText = `Periode: ${tglMulai} s/d ${tglSelesai}`;
+
+            try {
+                const res = await fetch(`/api/profit_loss_grouped?tgl_mulai=${tglMulai}&tgl_selesai=${tglSelesai}&kode_cabang=${cabang}`);
+                if (!res.ok) throw new Error("Gagal mengambil data dari server.");
+
+                const responseJson = await res.json();
+                const dataKelompok = responseJson.data_kelompok || {};
+
+                tbody.innerHTML = "";
+                const keys = Object.keys(dataKelompok);
+
+                if (keys.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-slate-400 italic">Tidak ada transaksi pada periode tersebut.</td></tr>';
+                    return;
+                }
+
+                let totalSemua = 0;
+
+                keys.forEach(kelompokNama => {
+                    const item = dataKelompok[kelompokNama];
+                    totalSemua += item.total_saldo;
+                    let warnaSaldo = item.total_saldo >= 0 ? 'text-indigo-700' : 'text-rose-600';
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition-colors font-medium">
+                            <td class="py-2.5 px-3 text-slate-800 font-bold">📁 ${kelompokNama} <span class="text-[10px] text-slate-400 font-normal">(${item.kategori || '-'})</span></td>
+                            <td class="py-2.5 px-3 text-slate-600 text-center font-mono">${item.rincian_akun.length} Akun</td>
+                            <td class="py-2.5 px-3 text-right font-mono font-bold ${warnaSaldo}">${formatRp(item.total_saldo)}</td>
+                        </tr>
+                    `;
+                });
+
+                // Baris Total Akhir
+                tbody.innerHTML += `
+                    <tr class="bg-slate-100 font-bold border-t-2 border-slate-300 text-slate-800">
+                        <td colspan="2" class="py-3 px-3 uppercase text-right">Total Keseluruhan:</td>
+                        <td class="py-3 px-3 text-right font-mono text-indigo-700">${formatRp(totalSemua)}</td>
+                    </tr>
+                `;
+
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = `<tr><td colspan="3" class="py-8 text-center text-rose-500 font-medium">Terjadi kesalahan saat memuat laporan.</td></tr>`;
+            }
+        }
+    </script>
+</body>
+
+</html>

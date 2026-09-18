@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migrasi Data Jurnal - Modul SAP Web</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="/role_akses.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen p-8 font-sans flex items-center justify-center">
+
+    <div class="bg-white border border-slate-200 rounded-xl p-8 shadow-lg max-w-xl w-full">
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-black text-slate-900 flex items-center justify-center gap-2">
+                <span>⚙️</span> ALAT MIGRASI DATABASE
+            </h1>
+            <p class="text-xs text-slate-500 mt-2">Hapus data uji coba (trial) dan impor transaksi historis dari Excel.</p>
+        </div>
+
+        <div class="border-2 border-rose-200 bg-rose-50 rounded-lg p-5 mb-6">
+            <h2 class="text-sm font-bold text-rose-800 flex items-center gap-2 mb-2">
+                <span>⚠️</span> TAHAP 1: KOSONGKAN DATA LAMA
+            </h2>
+            <p class="text-xs text-rose-600 mb-4">Tindakan ini akan menghapus <b>SELURUH</b> data Jurnal Umum yang ada di database saat ini (Header & Detail). Pastikan Anda sudah siap melakukan migrasi baru.</p>
+            <button onclick="resetDataJurnal()" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs py-3 rounded transition shadow-md">
+                🗑️ HAPUS SEMUA DATA JURNAL
+            </button>
+        </div>
+
+        <div class="border-2 border-blue-200 bg-blue-50 rounded-lg p-5">
+            <h2 class="text-sm font-bold text-blue-800 flex items-center gap-2 mb-2">
+                <span>📥</span> TAHAP 2: IMPORT EXCEL MIGRASI
+            </h2>
+            <p class="text-xs text-blue-600 mb-4">Pilih file Excel yang memiliki kolom standar: <b>TGL, DOC. NO, ACC, NAMA AKUN, KETERANGAN, DEBIT, KREDIT</b>. Sistem akan otomatis mem-posting seluruh data.</p>
+            
+            <input type="file" id="fileMigrasi" accept=".xlsx, .xls" class="hidden" onchange="prosesMigrasiExcel(event)">
+            
+            <button onclick="document.getElementById('fileMigrasi').click()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-3 rounded transition shadow-md">
+                🚀 PILIH FILE EXCEL & MULAI MIGRASI
+            </button>
+        </div>
+
+        <div id="statusProses" class="mt-6 text-center text-xs font-bold text-slate-600 hidden">
+            ⏳ Memproses file... Mohon tunggu jangan tutup halaman ini.
+        </div>
+    </div>
+
+        <script>
+        // FUNGSI 1: RESET DATA
+        async function resetDataJurnal() {
+            const konfirmasi = confirm("PERINGATAN KERAS!\n\nApakah Anda yakin ingin MENGHAPUS SEMUA DATA JURNAL?");
+            if (!konfirmasi) return;
+            try {
+                const res = await fetch('/api/sap/hapus_semua', { method: 'POST' });
+                const json = await res.json();
+                alert(res.ok ? "✅ BERHASIL: " + json.pesan : "❌ GAGAL: " + json.detail);
+            } catch (e) { alert("Error koneksi: " + e.message); }
+        }
+
+        // HELPER: PARSER ANGKA RUPIAH CERDAS
+        function parseRupiah(val) {
+            if (!val) return 0;
+            if (typeof val === 'number') return val;
+            let str = String(val).trim();
+            if (str === '-' || str === '') return 0;
+            
+            str = str.replace(/[^0-9.,-]/g, ''); // Buang huruf/simbol mata uang
+            
+            // Deteksi format Indonesia (15.000.000,50) atau US (15,000,000.50)
+            if (str.includes('.') && str.includes(',')) {
+                let lastDot = str.lastIndexOf('.');
+                let lastComma = str.lastIndexOf(',');
+                if (lastComma > lastDot) {
+                    str = str.replace(/\./g, '').replace(',', '.'); // Indonesia
+                } else {
+                    str = str.replace(/,/g, ''); // US
+                }
+            } else if (str.includes('.')) {
+                let parts = str.split('.');
+                if (parts[parts.length - 1].length === 3 && parts.length > 1) str = str.replace(/\./g, ''); // Asumsi Ribuan
+            } else if (str.includes(',')) {
+                let parts = str.split(',');
+                if (parts[parts.length - 1].length === 3 && parts.length > 1) str = str.replace(/,/g, ''); // Asumsi US Ribuan
+                else str = str.replace(',', '.'); // Desimal
+            }
+            return parseFloat(str) || 0;
+        }
+
+        // FUNGSI 2: PARSING EXCEL & MIGRASI SESUAI FORMAT USER
+        async function prosesMigrasiExcel(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('statusProses').classList.remove('hidden');
+            document.getElementById('statusProses').innerText = "⏳ Menganalisis & Memvalidasi File Excel...";
+
+            const reader = new FileReader();
+            reader.onload = async function(evt) {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+                    if (rawRows.length === 0) throw new Error("File Excel kosong.");
+
+                    const groupedJurnal = {};
+                    const getRawVal = (row, ...names) => {
+                        const keys = Object.keys(row);
+                        for (let n of names) {
+                            const c = n.toLowerCase().replace(/[^a-z0-9]/g, '');
+                            const f = keys.find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === c);
+                            if (f && row[f] !== undefined && row[f] !== "") return row[f];
+                        }
+                        return null;
+                    };
+                    const getColVal = (row, ...names) => {
+                        const v = getRawVal(row, ...names);
+                        return v !== null ? String(v).trim() : "";
+                    };
+
+                    rawRows.forEach(row => {
+                        const docNo = getColVal(row, "noref", "referencenumber", "nomorbukti");
+                        if (!docNo) return;
+
+                        let tglRaw = getRawVal(row, "tanggal", "date", "tgl");
+                        let tglFormatted = "2023-01-01";
+                        if (tglRaw instanceof Date) {
+                            const d = new Date(tglRaw.getTime() - (tglRaw.getTimezoneOffset() * 60000));
+                            tglFormatted = d.toISOString().split('T')[0];
+                        } else if (typeof tglRaw === 'string') {
+                            const p = tglRaw.split(/[-/]/);
+                            if (p.length === 3) {
+                                let y = p[2]; if(y.length===2) y="20"+y;
+                                tglFormatted = `${y}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+                            }
+                        }
+
+                        if (!groupedJurnal[docNo]) {
+                            groupedJurnal[docNo] = {
+                                no_referensi: docNo, tanggal: tglFormatted, kode_voucher: docNo.split(" ")[0] || "JV",
+                                keterangan: "Migrasi Jurnal", detail: []
+                            };
+                        }
+
+                        // Menggunakan Parser Angka Cerdas
+                        const valDebit = parseRupiah(getColVal(row, "debet", "debit"));
+                        const valKredit = parseRupiah(getColVal(row, "kredit"));
+                        const teksDeskripsi = getColVal(row, "description", "keterangan");
+
+                        groupedJurnal[docNo].detail.push({
+                            kode_akun: getColVal(row, "acct", "accountno", "kodeakun"),
+                            nama_akun: teksDeskripsi || "Akun Migrasi",
+                            keterangan: teksDeskripsi || "Migrasi",
+                            debit: valDebit,
+                            kredit: valKredit
+                        });
+                    });
+
+                    const payloadData = Object.values(groupedJurnal);
+                    if(payloadData.length === 0) throw new Error("Data tidak terdeteksi. Pastikan baris 1 adalah Header (No Ref, dll).");
+
+                    // 🚨 GEMBOK ANTI-UNBALANCED (Wajib Balance Sebelum Dikirim)
+                    for (let j of payloadData) {
+                        let totD = j.detail.reduce((sum, d) => sum + d.debit, 0);
+                        let totK = j.detail.reduce((sum, d) => sum + d.kredit, 0);
+                        // Toleransi pembulatan desimal kecil (0.1)
+                        if (Math.abs(totD - totK) > 0.1) {
+                            throw new Error(`🚨 DITOLAK!\nDokumen: ${j.no_referensi} TIDAK SEIMBANG (UNBALANCED)!\nTotal Debit: ${totD}\nTotal Kredit: ${totK}\nMohon perbaiki file Excel Anda.`);
+                        }
+                    }
+
+                    document.getElementById('statusProses').innerText = `🚀 Mengirim ${payloadData.length} Dokumen Jurnal ke Database...`;
+
+                    const response = await fetch('/api/migrasi/import', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payloadData)
+                    });
+
+                    if (response.ok) {
+                        alert(`🎉 MIGRASI SUKSES!\n\n${(await response.json()).pesan}`);
+                    } else alert("❌ Gagal Migrasi: " + ((await response.json()).detail || "Error Server"));
+
+                } catch (error) { alert(error.message); } 
+                finally {
+                    e.target.value = ""; document.getElementById('statusProses').classList.add('hidden');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+    </script>
+</body>
+</html>

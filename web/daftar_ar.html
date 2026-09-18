@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Faktur & Saldo Piutang (AR) - SAP BoB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/role_akses.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        /* FORMAT CETAK PDF RESMI MULTI-PAGE LANDSCAPE */
+        @media print {
+            @page {
+                size: landscape;
+                margin: 10mm;
+            }
+
+            body,
+            html {
+                background: #fff !important;
+                color: #000 !important;
+                height: auto !important;
+                overflow: visible !important;
+                font-size: 10px !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .print-area {
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: visible !important;
+            }
+
+            table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+            }
+
+            th,
+            td {
+                border: 1px solid #cbd5e1 !important;
+                padding: 4px 6px !important;
+                color: #000 !important;
+            }
+
+            th {
+                background-color: #f1f5f9 !important;
+            }
+
+            thead {
+                display: table-header-group !important;
+            }
+
+            tr {
+                page-break-inside: avoid !important;
+            }
+
+            .badge-print {
+                border: none !important;
+                background: transparent !important;
+                color: black !important;
+                font-weight: bold !important;
+                padding: 0 !important;
+            }
+
+            .print-header {
+                display: block !important;
+                margin-bottom: 12px;
+                border-bottom: 2px solid #0f172a;
+                padding-bottom: 8px;
+            }
+        }
+
+        .print-header {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="h-full flex flex-col overflow-hidden text-slate-700 text-xs">
+
+    <!-- HEADER TOOLBAR -->
+    <header
+        class="no-print h-11 bg-white border-b border-slate-200 px-4 flex items-center justify-between shadow-xs z-10 flex-shrink-0">
+        <div class="flex items-center gap-2">
+            <span class="text-base">📑</span>
+            <h2 class="font-bold text-slate-800 text-xs uppercase tracking-wide">Daftar Tagihan Piutang (Sub-Ledger AR)
+            </h2>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="cetakPDF()"
+                class="bg-slate-800 hover:bg-slate-900 text-white px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 shadow-xs transition-colors">
+                🖨️ Cetak PDF
+            </button>
+            <button onclick="exportDaftarARKeExcel()"
+                class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 shadow-xs transition-colors">
+                📊 Export Excel
+            </button>
+            <button onclick="muatDaftarAR()"
+                class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded text-[11px] font-semibold border border-slate-300">
+                🔄 Segarkan
+            </button>
+            <a href="/customer_invoice"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 shadow-xs ml-1">
+                ➕ Entri Faktur Baru
+            </a>
+        </div>
+    </header>
+
+    <div class="flex-1 overflow-y-auto p-3 space-y-3 print-area">
+
+        <!-- KOP KHUSUS CETAK PDF -->
+        <div class="print-header">
+            <div class="flex justify-between items-end">
+                <div>
+                    <h1 class="text-base font-extrabold text-slate-900 uppercase tracking-wide">LAPORAN SUB-LEDGER
+                        PIUTANG USAHA (ACCOUNT RECEIVABLE)</h1>
+                    <p class="text-[10px] text-slate-600 mt-0.5">Dicetak pada: <span id="print-tanggal">-</span></p>
+                </div>
+                <div class="text-right text-[10px] text-slate-600" id="print-filter-info"></div>
+            </div>
+        </div>
+
+        <!-- KARTU RINGKASAN SALDO UTAMA -->
+        <div class="no-print grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="bg-white p-3 rounded border border-slate-200 shadow-xs border-l-4 border-l-blue-600">
+                <span class="text-[10px] font-bold text-slate-500 uppercase block">Total Nilai Tagihan (Faktur)</span>
+                <span id="card-total-faktur" class="text-sm font-mono font-bold text-slate-800">Rp 0</span>
+                <p class="text-[9px] text-slate-400 mt-0.5">Akumulasi seluruh faktur penjualan terbit</p>
+            </div>
+
+            <div class="bg-white p-3 rounded border border-slate-200 shadow-xs border-l-4 border-l-rose-600">
+                <span class="text-[10px] font-bold text-slate-500 uppercase block">Sisa Saldo Terutang (Open AR)</span>
+                <span id="card-saldo-terutang" class="text-sm font-mono font-bold text-rose-600">Rp 0</span>
+                <p class="text-[9px] text-slate-400 mt-0.5">Piutang yang belum lunas tertagih</p>
+            </div>
+
+            <div class="bg-white p-3 rounded border border-slate-200 shadow-xs border-l-4 border-l-emerald-600">
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase block">Piutang Diterima (Tahun
+                        Ini)</span>
+                    <span id="badge-tahun-aktif"
+                        class="text-[9px] font-mono font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">2026</span>
+                </div>
+                <span id="card-total-lunas" class="text-sm font-mono font-bold text-emerald-600">Rp 0</span>
+                <p class="text-[9px] text-slate-400 mt-0.5">Penerimaan pelunasan faktur tahun berjalan</p>
+            </div>
+        </div>
+
+        <!-- PANEL AR AGING REPORT -->
+        <div class="no-print bg-white rounded border border-slate-200 shadow-xs p-3">
+            <div class="flex justify-between items-center mb-2 pb-1.5 border-b border-slate-100">
+                <span class="font-bold text-slate-700 text-[10px] uppercase flex items-center gap-1.5">
+                    <span>📊</span> Analisis Umur Piutang (AR Aging Schedule)
+                </span>
+                <span class="text-[9px] text-slate-400">Klik kartu untuk menyaring umur faktur:</span>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-2 font-mono">
+                <div onclick="setFilterAging('CURRENT')" id="card-aging-current"
+                    class="cursor-pointer bg-slate-50 hover:bg-slate-100 p-2 rounded border border-slate-200 transition">
+                    <span class="text-[9px] font-bold text-slate-500 uppercase font-sans block">Belum Jatuh Tempo</span>
+                    <span id="val-aging-current" class="text-xs font-bold text-slate-800">Rp 0</span>
+                    <span id="count-aging-current" class="text-[9px] text-slate-400 block font-sans mt-0.5">0
+                        Dokumen</span>
+                </div>
+
+                <div onclick="setFilterAging('LT_30')" id="card-aging-lt30"
+                    class="cursor-pointer bg-amber-50/50 hover:bg-amber-100/50 p-2 rounded border border-amber-200 transition">
+                    <span class="text-[9px] font-bold text-amber-700 uppercase font-sans block">&lt; 30 Hari</span>
+                    <span id="val-aging-lt30" class="text-xs font-bold text-amber-800">Rp 0</span>
+                    <span id="count-aging-lt30" class="text-[9px] text-amber-600 block font-sans mt-0.5">0
+                        Dokumen</span>
+                </div>
+
+                <div onclick="setFilterAging('30_60')" id="card-aging-3060"
+                    class="cursor-pointer bg-orange-50/50 hover:bg-orange-100/50 p-2 rounded border border-orange-200 transition">
+                    <span class="text-[9px] font-bold text-orange-700 uppercase font-sans block">30 – 60 Hari</span>
+                    <span id="val-aging-3060" class="text-xs font-bold text-orange-800">Rp 0</span>
+                    <span id="count-aging-3060" class="text-[9px] text-orange-600 block font-sans mt-0.5">0
+                        Dokumen</span>
+                </div>
+
+                <div onclick="setFilterAging('60_90')" id="card-aging-6090"
+                    class="cursor-pointer bg-rose-50/50 hover:bg-rose-100/50 p-2 rounded border border-rose-200 transition">
+                    <span class="text-[9px] font-bold text-rose-700 uppercase font-sans block">60 – 90 Hari</span>
+                    <span id="val-aging-6090" class="text-xs font-bold text-rose-800">Rp 0</span>
+                    <span id="count-aging-6090" class="text-[9px] text-rose-600 block font-sans mt-0.5">0 Dokumen</span>
+                </div>
+
+                <div onclick="setFilterAging('GT_90')" id="card-aging-gt90"
+                    class="cursor-pointer bg-red-100/60 hover:bg-red-200/60 p-2 rounded border border-red-300 transition">
+                    <span class="text-[9px] font-bold text-red-800 uppercase font-sans block">&gt; 90 Hari</span>
+                    <span id="val-aging-gt90" class="text-xs font-bold text-red-900">Rp 0</span>
+                    <span id="count-aging-gt90" class="text-[9px] text-red-700 block font-sans mt-0.5">0 Dokumen</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEARCH & QUERY TOOLBAR (CUSTOMER & CABANG) -->
+        <div
+            class="no-print bg-white p-2.5 rounded border border-slate-200 shadow-xs flex flex-wrap gap-2 items-center justify-between">
+            <div class="flex items-center gap-2 flex-1 min-w-[240px]">
+                <span class="text-slate-400">🔍</span>
+                <input type="text" id="input-search" onkeyup="if(event.key === 'Enter') muatDaftarAR()"
+                    placeholder="Cari No. Invoice, PO Pelanggan..."
+                    class="w-full bg-slate-50 border border-slate-200 rounded px-2.5 py-1 text-[11px] outline-none focus:border-blue-500">
+                <button onclick="muatDaftarAR()"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-[11px] font-semibold">Cari</button>
+            </div>
+
+            <!-- QUERY PER CUSTOMER -->
+            <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-semibold text-slate-500">Customer:</span>
+                <select id="filter-customer" onchange="muatDaftarAR()"
+                    class="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-semibold outline-none focus:border-blue-500 max-w-[190px]">
+                    <option value="SEMUA">Semua Customer</option>
+                </select>
+                <span id="badge-total-piutang-cust"
+                    class="hidden bg-rose-50 text-rose-700 border border-rose-200 font-mono font-bold px-2 py-0.5 rounded text-[10px]">
+                    Rp 0
+                </span>
+            </div>
+
+            <!-- QUERY PER CABANG -->
+            <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-semibold text-slate-500">Cabang:</span>
+                <select id="filter-cabang" onchange="muatDaftarAR()"
+                    class="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-semibold outline-none focus:border-blue-500">
+                    <option value="SEMUA">Semua Cabang</option>
+                </select>
+            </div>
+
+            <!-- STATUS BAYAR & AGING -->
+            <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1">
+                    <span class="text-[10px] font-semibold text-slate-500">Aging:</span>
+                    <select id="filter_aging" onchange="filterTabelFakturLocal()"
+                        class="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none font-semibold">
+                        <option value="SEMUA">Semua Umur</option>
+                        <option value="CURRENT">Belum Jatuh Tempo</option>
+                        <option value="LT_30">&lt; 30 Hari</option>
+                        <option value="30_60">30 – 60 Hari</option>
+                        <option value="60_90">60 – 90 Hari</option>
+                        <option value="GT_90">&gt; 90 Hari</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center gap-1">
+                    <span class="text-[10px] font-semibold text-slate-500">Status:</span>
+                    <select id="filter_status_bayar" onchange="muatDaftarAR()"
+                        class="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none font-semibold">
+                        <option value="SEMUA">Semua Status</option>
+                        <option value="OPEN">🔴 OPEN (Terutang)</option>
+                        <option value="PAID">🟢 PAID (Lunas)</option>
+                        <option value="PENDING">⏳ PENDING</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABEL RINCIAN DOKUMEN AR -->
+        <div class="bg-white rounded border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[450px]">
+            <div class="no-print px-3 py-1.5 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <span class="font-bold text-slate-700 text-[10px] uppercase">Rincian Dokumen Faktur Piutang Usaha</span>
+                <span id="lbl_jml_faktur" class="text-[9px] font-bold text-slate-500">0 Dokumen</span>
+            </div>
+
+            <div class="overflow-x-auto flex-1">
+                <table class="w-full text-left border-collapse" id="tabel-ar">
+                    <thead class="bg-slate-100 text-slate-600 text-[10px] sticky top-0 z-10 uppercase">
+                        <tr>
+                            <th class="py-2 px-2.5 border-b">No. Invoice</th>
+                            <th class="py-2 px-2.5 border-b">Pelanggan</th>
+                            <th class="py-2 px-2.5 border-b text-center">Cabang</th>
+                            <th class="py-2 px-2.5 border-b">No. PO Ref</th>
+                            <th class="py-2 px-2.5 border-b">Tgl Faktur</th>
+                            <th class="py-2 px-2.5 border-b">Jatuh Tempo</th>
+                            <th class="py-2 px-2.5 border-b text-right">Total Faktur</th>
+                            <th class="py-2 px-2.5 border-b text-right">Sisa Piutang</th>
+                            <th class="py-2 px-2.5 border-b text-center">Status</th>
+                            <th class="py-2 px-2.5 border-b text-center w-16 no-print">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel-ar-body" class="divide-y divide-slate-100 text-[11px]">
+                        <tr>
+                            <td colspan="10" class="py-6 text-center text-slate-400 italic">Memuat data faktur...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const formatRp = (v) => new Intl.NumberFormat('id-ID').format(v || 0);
+        let listFaktur = [];
+        let listMasterCustomer = [];
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            await inisialisasiMasterDropdown();
+            await muatDaftarAR();
+        });
+
+        // 1. Inisialisasi Pilihan Customer & Cabang
+        async function inisialisasiMasterDropdown() {
+            try {
+                // Dropdown Cabang
+                const resCbg = await fetch('/api/cabang');
+                if (resCbg.ok) {
+                    const cbgs = await resCbg.json();
+                    const selCbg = document.getElementById('filter-cabang');
+                    selCbg.innerHTML = '<option value="SEMUA">Semua Cabang</option>';
+                    cbgs.forEach(c => {
+                        selCbg.innerHTML += `<option value="${c.kode}">${c.kode} - ${c.nama}</option>`;
+                    });
+                }
+
+                // Dropdown Customer
+                const resCust = await fetch('/api/customer');
+                if (resCust.ok) {
+                    listMasterCustomer = await resCust.json();
+                    const selCust = document.getElementById('filter-customer');
+                    selCust.innerHTML = '<option value="SEMUA">Semua Customer</option>';
+                    listMasterCustomer.forEach(c => {
+                        selCust.innerHTML += `<option value="${c.kode_customer}">${c.nama_customer} (${c.kode_customer})</option>`;
+                    });
+                }
+            } catch (e) {
+                console.warn("Gagal inisialisasi dropdown filter:", e);
+            }
+        }
+
+        // 2. Fetch Data AR dari Backend
+        async function muatDaftarAR() {
+            const q = document.getElementById('input-search').value.trim();
+            const statusBayar = document.getElementById('filter_status_bayar').value;
+            const kodeCust = document.getElementById('filter-customer').value;
+            const kodeCbg = document.getElementById('filter-cabang').value;
+
+            try {
+                const url = `/api/customer_invoice?q=${encodeURIComponent(q)}&status_bayar=${encodeURIComponent(statusBayar)}&kode_customer=${encodeURIComponent(kodeCust)}&kode_cabang=${encodeURIComponent(kodeCbg)}&_t=${Date.now()}`;
+                const res = await fetch(url);
+                listFaktur = await res.json();
+
+                hitungAgingSummary(listFaktur);
+                updateBadgeCustomer(kodeCust);
+                filterTabelFakturLocal();
+            } catch (e) {
+                console.error("Gagal muat faktur AR:", e);
+            }
+        }
+
+        // 3. Update Badge Total Piutang Rekanan Terpilih
+        function updateBadgeCustomer(kodeCust) {
+            const badge = document.getElementById('badge-total-piutang-cust');
+            if (kodeCust !== "SEMUA") {
+                const totalPiutangCust = listFaktur.reduce((acc, cur) => acc + (parseFloat(cur.saldo_terutang) || 0), 0);
+                badge.innerText = `Total Piutang: Rp ${formatRp(totalPiutangCust)}`;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        // 4. Perhitungan Kelompok Umur Piutang (AR Aging)
+        function getAgingCategory(jatuhTempoStr, sisaPiutang) {
+            if (sisaPiutang <= 0) return { category: 'PAID', overdueDays: 0, isOverdue: false };
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const dueDate = new Date(jatuhTempoStr);
+            dueDate.setHours(0, 0, 0, 0);
+
+            const diffTime = today - dueDate;
+            const overdueDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (overdueDays <= 0) return { category: 'CURRENT', overdueDays: 0, isOverdue: false };
+            else if (overdueDays <= 30) return { category: 'LT_30', overdueDays: overdueDays, isOverdue: true };
+            else if (overdueDays <= 60) return { category: '30_60', overdueDays: overdueDays, isOverdue: true };
+            else if (overdueDays <= 90) return { category: '60_90', overdueDays: overdueDays, isOverdue: true };
+            else return { category: 'GT_90', overdueDays: overdueDays, isOverdue: true };
+        }
+
+        function hitungAgingSummary(data) {
+            let sumCurrent = 0, countCurrent = 0;
+            let sumLt30 = 0, countLt30 = 0;
+            let sum3060 = 0, count3060 = 0;
+            let sum6090 = 0, count6090 = 0;
+            let sumGt90 = 0, countGt90 = 0;
+
+            let totalFaktur = 0;
+            let totalSaldo = 0;
+
+            const tahunBerjalan = new Date().getFullYear().toString();
+            const badgeTahun = document.getElementById('badge-tahun-aktif');
+            if (badgeTahun) badgeTahun.innerText = tahunBerjalan;
+
+            let totalFakturTahunIni = 0;
+            let saldoTerutangTahunIni = 0;
+
+            data.forEach(inv => {
+                const totInv = parseFloat(inv.total_invoice || 0);
+                const sisa = parseFloat(inv.saldo_terutang || 0);
+
+                totalFaktur += totInv;
+                totalSaldo += sisa;
+
+                const tglFaktur = String(inv.tanggal || "");
+                if (tglFaktur.startsWith(tahunBerjalan)) {
+                    totalFakturTahunIni += totInv;
+                    saldoTerutangTahunIni += sisa;
+                }
+
+                const aging = getAgingCategory(inv.jatuh_tempo, sisa);
+
+                if (aging.category === 'CURRENT') { sumCurrent += sisa; countCurrent++; }
+                else if (aging.category === 'LT_30') { sumLt30 += sisa; countLt30++; }
+                else if (aging.category === '30_60') { sum3060 += sisa; count3060++; }
+                else if (aging.category === '60_90') { sum6090 += sisa; count6090++; }
+                else if (aging.category === 'GT_90') { sumGt90 += sisa; countGt90++; }
+            });
+
+            const totalLunasTahunIni = Math.max(0, totalFakturTahunIni - saldoTerutangTahunIni);
+
+            document.getElementById('card-total-faktur').innerText = `Rp ${formatRp(totalFaktur)}`;
+            document.getElementById('card-saldo-terutang').innerText = `Rp ${formatRp(totalSaldo)}`;
+            document.getElementById('card-total-lunas').innerText = `Rp ${formatRp(totalLunasTahunIni)}`;
+
+            document.getElementById('val-aging-current').innerText = `Rp ${formatRp(sumCurrent)}`;
+            document.getElementById('count-aging-current').innerText = `${countCurrent} Dokumen`;
+
+            document.getElementById('val-aging-lt30').innerText = `Rp ${formatRp(sumLt30)}`;
+            document.getElementById('count-aging-lt30').innerText = `${countLt30} Dokumen`;
+
+            document.getElementById('val-aging-3060').innerText = `Rp ${formatRp(sum3060)}`;
+            document.getElementById('count-aging-3060').innerText = `${count3060} Dokumen`;
+
+            document.getElementById('val-aging-6090').innerText = `Rp ${formatRp(sum6090)}`;
+            document.getElementById('count-aging-6090').innerText = `${count6090} Dokumen`;
+
+            document.getElementById('val-aging-gt90').innerText = `Rp ${formatRp(sumGt90)}`;
+            document.getElementById('count-aging-gt90').innerText = `${countGt90} Dokumen`;
+        }
+
+        // 5. Render Tabel
+        function renderTabel(data) {
+            const tbody = document.getElementById('tabel-ar-body');
+            tbody.innerHTML = "";
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" class="py-6 text-center text-slate-400 italic">Tidak ada faktur yang memenuhi kriteria pencarian/filter.</td></tr>';
+                document.getElementById('lbl_jml_faktur').innerText = "0 Dokumen";
+                return;
+            }
+
+            document.getElementById('lbl_jml_faktur').innerText = `${data.length} Dokumen`;
+
+            data.forEach(inv => {
+                const totInv = parseFloat(inv.total_invoice || 0);
+                const sisa = parseFloat(inv.saldo_terutang || 0);
+                const aging = getAgingCategory(inv.jatuh_tempo, sisa);
+
+                let cellJatuhTempo = '';
+                if (aging.isOverdue) {
+                    cellJatuhTempo = `
+                        <div class="font-mono font-bold text-rose-600">
+                            ${inv.jatuh_tempo}
+                            <span class="block text-[9px] font-semibold text-rose-500 tracking-tight">Overdue ${aging.overdueDays} hr</span>
+                        </div>
+                    `;
+                } else {
+                    cellJatuhTempo = `<div class="font-mono text-slate-600 font-medium">${inv.jatuh_tempo}</div>`;
+                }
+
+                let badge = '';
+                if (inv.status === 'Pending') {
+                    badge = '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[9px] font-bold badge-print">⏳ PENDING</span>';
+                } else if (sisa <= 0) {
+                    badge = '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[9px] font-bold badge-print">✅ PAID</span>';
+                } else if (aging.isOverdue) {
+                    badge = '<span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-[9px] font-bold badge-print">⚠️ OVERDUE</span>';
+                } else {
+                    badge = '<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[9px] font-bold badge-print">📌 OPEN</span>';
+                }
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-1.5 px-2.5 font-mono font-bold text-blue-700 cursor-pointer hover:underline" onclick="cetakInvoice('${inv.no_invoice}')">${inv.no_invoice}</td>
+                        <td class="py-1.5 px-2.5 font-semibold text-slate-800">${inv.nama_customer}</td>
+                        <td class="py-1.5 px-2.5 text-center font-mono font-bold text-blue-900 bg-blue-50/40">${inv.kode_cabang || 'HO'}</td>
+                        <td class="py-1.5 px-2.5 font-mono text-slate-500">${inv.no_po_customer || '-'}</td>
+                        <td class="py-1.5 px-2.5 font-mono text-slate-500">${inv.tanggal}</td>
+                        <td class="py-1.5 px-2.5">${cellJatuhTempo}</td>
+                        <td class="py-1.5 px-2.5 text-right font-mono text-slate-800">Rp ${formatRp(totInv)}</td>
+                        <td class="py-1.5 px-2.5 text-right font-mono font-bold ${sisa > 0 ? 'text-rose-700' : 'text-slate-400'}">Rp ${formatRp(sisa)}</td>
+                        <td class="py-1.5 px-2.5 text-center">${badge}</td>
+                        <td class="py-1.5 px-2.5 text-center whitespace-nowrap no-print">
+                            <button type="button" onclick="cetakInvoice('${inv.no_invoice}')" class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-semibold border border-blue-200" title="Cetak Faktur">
+                                🖨️ Cetak
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function setFilterAging(kategori) {
+            document.getElementById('filter_aging').value = kategori;
+            filterTabelFakturLocal();
+        }
+
+        function filterTabelFakturLocal() {
+            const filterAging = document.getElementById('filter_aging').value;
+
+            ['current', 'lt30', '3060', '6090', 'gt90'].forEach(k => {
+                const el = document.getElementById(`card-aging-${k}`);
+                if (el) el.classList.remove('ring-2', 'ring-blue-500', 'bg-white');
+            });
+
+            if (filterAging === 'CURRENT') document.getElementById('card-aging-current')?.classList.add('ring-2', 'ring-blue-500', 'bg-white');
+            if (filterAging === 'LT_30') document.getElementById('card-aging-lt30')?.classList.add('ring-2', 'ring-blue-500', 'bg-white');
+            if (filterAging === '30_60') document.getElementById('card-aging-3060')?.classList.add('ring-2', 'ring-blue-500', 'bg-white');
+            if (filterAging === '60_90') document.getElementById('card-aging-6090')?.classList.add('ring-2', 'ring-blue-500', 'bg-white');
+            if (filterAging === 'GT_90') document.getElementById('card-aging-gt90')?.classList.add('ring-2', 'ring-blue-500', 'bg-white');
+
+            const filtered = listFaktur.filter(inv => {
+                const sisa = parseFloat(inv.saldo_terutang || 0);
+                const aging = getAgingCategory(inv.jatuh_tempo, sisa);
+
+                if (filterAging !== 'SEMUA') {
+                    return aging.category === filterAging;
+                }
+                return true;
+            });
+
+            renderTabel(filtered);
+        }
+
+        // =======================================================
+        // 6. FITUR CETAK PDF LANDSCAPE
+        // =======================================================
+        function cetakPDF() {
+            const tgl = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+            document.getElementById('print-tanggal').innerText = tgl;
+
+            const custVal = document.getElementById('filter-customer').value;
+            const cbgVal = document.getElementById('filter-cabang').value;
+            document.getElementById('print-filter-info').innerHTML = `
+                Customer: <strong>${custVal}</strong> | Cabang: <strong>${cbgVal}</strong>
+            `;
+            window.print();
+        }
+
+        // =======================================================
+        // 7. FITUR EXPORT EXCEL BERJENJANG PER CUSTOMER (SHEETJS)
+        // =======================================================
+        function exportDaftarARKeExcel() {
+            // Hanya ambil faktur yang belum lunas (saldo_terutang > 0)
+            const activeInvoices = listFaktur.filter(inv => Number(inv.saldo_terutang || 0) > 0);
+
+            if (activeInvoices.length === 0) {
+                return alert("Tidak ada data piutang aktif/belum lunas untuk diekspor!");
+            }
+
+            // Kelompokkan per Customer
+            const grouped = {};
+            activeInvoices.forEach(inv => {
+                const cKey = `${inv.nama_customer || 'Tanpa Nama'} (${inv.kode_customer || '-'})`;
+                if (!grouped[cKey]) grouped[cKey] = [];
+                grouped[cKey].push(inv);
+            });
+
+            const sortedCustKeys = Object.keys(grouped).sort();
+            const excelRows = [
+                ["LAPORAN SUB-LEDGER PIUTANG USAHA (FAKTUR BELUM LUNAS)"],
+                [`Tanggal Unduh: ${new Date().toLocaleDateString('id-ID')}`],
+                [],
+                [
+                    "Nama / Kode Pelanggan",
+                    "No. Invoice",
+                    "Cabang",
+                    "No. PO Pelanggan",
+                    "Tgl Faktur",
+                    "Jatuh Tempo",
+                    "Total Faktur (Rp)",
+                    "Saldo Piutang (Rp)",
+                    "Status Bayar"
+                ]
+            ];
+
+            let grandTotalFaktur = 0;
+            let grandTotalPiutang = 0;
+
+            sortedCustKeys.forEach(cKey => {
+                const invoices = grouped[cKey];
+                let subtotalFaktur = 0;
+                let subtotalPiutang = 0;
+
+                // Header Grup Pelanggan
+                excelRows.push([`>> CUSTOMER: ${cKey}`, "", "", "", "", "", "", "", ""]);
+
+                invoices.forEach(inv => {
+                    const tot = Number(inv.total_invoice) || 0;
+                    const sld = Number(inv.saldo_terutang) || 0;
+
+                    subtotalFaktur += tot;
+                    subtotalPiutang += sld;
+                    grandTotalFaktur += tot;
+                    grandTotalPiutang += sld;
+
+                    excelRows.push([
+                        "",
+                        inv.no_invoice || "-",
+                        inv.kode_cabang || "HO",
+                        inv.no_po_customer || "-",
+                        inv.tanggal || "-",
+                        inv.jatuh_tempo || "-",
+                        tot, // Numerik murni tanpa format string
+                        sld, // Numerik murni tanpa format string
+                        "Unpaid"
+                    ]);
+                });
+
+                // Baris Subtotal per Customer
+                excelRows.push([
+                    `SUBTOTAL ${cKey}`,
+                    "", "", "", "", "",
+                    subtotalFaktur,
+                    subtotalPiutang,
+                    ""
+                ]);
+                excelRows.push([]); // Pemisah baris
+            });
+
+            // Grand Total
+            excelRows.push([
+                "GRAND TOTAL PIUTANG AKTIF",
+                "", "", "", "", "",
+                grandTotalFaktur,
+                grandTotalPiutang,
+                ""
+            ]);
+
+            const ws = XLSX.utils.aoa_to_sheet(excelRows);
+            ws['!cols'] = [
+                { wch: 32 }, { wch: 18 }, { wch: 10 }, { wch: 18 }, { wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 14 }
+            ];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Piutang Per Customer");
+            XLSX.writeFile(wb, `Laporan_Piutang_AR_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+
+        function cetakInvoice(noInv) {
+            window.open(`/cetak_invoice?no_invoice=${encodeURIComponent(noInv)}`, '_blank');
+        }
+    </script>
+</body>
+
+</html>

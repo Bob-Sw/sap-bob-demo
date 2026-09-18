@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neraca Saldo (Trial Balance) - SAP BoB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/role_akses.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 10mm;
+            }
+
+            body {
+                background: #fff !important;
+                color: #000 !important;
+            }
+
+            aside,
+            header,
+            .panel-filter,
+            .no-print {
+                display: none !important;
+            }
+
+            main {
+                padding: 0 !important;
+                overflow: visible !important;
+                height: auto !important;
+            }
+
+            .print-header {
+                display: block !important;
+            }
+
+            table {
+                font-size: 8pt !important;
+            }
+
+            th,
+            td {
+                padding: 3px 5px !important;
+            }
+        }
+
+        .print-header {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="h-full flex overflow-hidden text-slate-700 text-xs">
+
+    <aside
+        class="w-48 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800 shadow-xl z-20 no-print">
+        <div class="h-12 px-3 bg-slate-950/80 flex items-center gap-2 border-b border-slate-800/80">
+            <img src="/Logo_SAP.png" alt="Logo" class="h-6 w-auto object-contain"
+                onerror="this.onerror=null; this.src='Logo_SAP.png';">
+            <h1 class="text-xs font-bold text-white tracking-wide">SAP BoB</h1>
+        </div>
+        <nav class="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
+            <div class="px-2 pb-1.5 text-[9px] font-semibold text-slate-500 uppercase tracking-wider">Modul Akuntansi
+            </div>
+            <a href="/dashboard"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>📊</span>
+                Dashboard</a>
+            <a href="/trial_balance"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-semibold text-white bg-indigo-600/95 shadow-sm transition-all mt-0.5"><span>⚖️</span>
+                Neraca Saldo</a>
+        </nav>
+        <div class="p-2 bg-slate-950/60 border-t border-slate-800/80">
+            <button onclick="localStorage.clear(); window.location.href='/';"
+                class="w-full bg-slate-800 hover:bg-rose-600/80 text-slate-300 hover:text-white py-1.5 px-2 rounded text-[10px] font-medium transition-all flex items-center justify-center gap-1.5"><span>🚪</span>
+                Logout</button>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-100/70">
+        <header
+            class="h-10 bg-white border-b border-slate-200/80 px-4 flex items-center justify-between shadow-xs z-10 flex-shrink-0 no-print">
+            <div class="flex items-center gap-1.5 text-[11px]">
+                <span class="text-slate-400">Akuntansi</span> <span class="text-slate-300">/</span>
+                <h2 class="font-semibold text-slate-800">Neraca Saldo (Trial Balance)</h2>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-3">
+
+            <div class="print-header mb-4 border-b-2 border-slate-800 pb-2">
+                <h1 class="text-base font-bold text-slate-900 uppercase">PT. SAP BoB Nusantara</h1>
+                <p class="text-[10px] text-slate-500">Laporan Neraca Saldo (Trial Balance)</p>
+                <p class="text-[10px] text-slate-600 mt-1" id="print-periode-teks"></p>
+            </div>
+
+            <div class="bg-white rounded border border-slate-200 shadow-sm p-3 panel-filter no-print">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Dari Tanggal</label>
+                        <input type="date" id="tgl_mulai"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Sampai Tanggal</label>
+                        <input type="date" id="tgl_selesai"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Cabang</label>
+                        <select id="kode_cabang"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                            <option value="SEMUA">Semua Cabang</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-2 md:col-span-2">
+                        <button onclick="tampilkanTrialBalance()"
+                            class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-[11px] font-bold shadow-xs transition-colors">
+                            🔍 Tampilkan
+                        </button>
+                        <button onclick="exportExcel()"
+                            class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-[11px] font-bold shadow-xs transition-colors">
+                            📊 Excel
+                        </button>
+                        <button onclick="window.print()"
+                            class="bg-slate-700 hover:bg-slate-800 text-white px-3 py-1.5 rounded text-[11px] font-bold shadow-xs transition-colors">
+                            🖨️ Cetak
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="status-balance-box"
+                class="p-2.5 rounded border text-xs font-bold hidden flex items-center justify-between">
+                <span id="status-balance-text">Memeriksa keseimbangan...</span>
+                <span id="selisih-teks" class="font-mono"></span>
+            </div>
+
+            <div class="bg-white rounded border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left border-collapse" id="tabel-tb">
+                        <thead class="bg-slate-100 text-slate-700 text-[10px] uppercase font-bold text-center border-b">
+                            <tr>
+                                <th rowspan="2" class="py-2 px-2 border-r align-middle w-20">Kode Akun</th>
+                                <th rowspan="2" class="py-2 px-3 border-r align-middle text-left">Nama Akun (COA)</th>
+                                <th colspan="2" class="py-1 px-2 border-r border-b">Saldo Awal</th>
+                                <th colspan="2" class="py-1 px-2 border-r border-b">Mutasi Periode</th>
+                                <th colspan="2" class="py-1 px-2 border-b">Saldo Akhir</th>
+                            </tr>
+                            <tr>
+                                <th class="py-1.5 px-2 border-r text-right font-semibold">Debit (Rp)</th>
+                                <th class="py-1.5 px-2 border-r text-right font-semibold">Kredit (Rp)</th>
+                                <th class="py-1.5 px-2 border-r text-right font-semibold">Debit (Rp)</th>
+                                <th class="py-1.5 px-2 border-r text-right font-semibold">Kredit (Rp)</th>
+                                <th class="py-1.5 px-2 border-r text-right font-semibold">Debit (Rp)</th>
+                                <th class="py-1.5 px-2 text-right font-semibold">Kredit (Rp)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tb-body" class="divide-y divide-slate-100 text-[11px]">
+                            <tr>
+                                <td colspan="8" class="text-center py-6 text-slate-400 italic">Silakan pilih rentang
+                                    tanggal dan klik "Tampilkan".</td>
+                            </tr>
+                        </tbody>
+                        <tfoot id="tb-foot" class="bg-slate-100 font-bold text-[11px] border-t-2 border-slate-300">
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        let cachedData = null;
+        const formatRp = (angka) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(angka);
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const role = (localStorage.getItem('role') || '').trim().toLowerCase();
+
+            // VALIDASI KEAMANAN: HANYA APPROVER DAN SUPER_USER YANG BOLEH AKSES
+            if (role !== 'approver' && role !== 'super_user') {
+                alert("⛔ AKSES DITOLAK!\n\nModul Neraca Saldo (Trial Balance) bersifat rahasia dan hanya dapat diakses oleh Approver atau Super User.");
+                window.location.href = '/dashboard';
+                return;
+            }
+
+            // Sembunyikan menu setup system jika bukan super_user
+            const mss = document.getElementById('section-setup-system');
+            if (mss && role !== 'super_user') {
+                // Opsional: Batasi menu setup di dalam halaman ini
+            }
+
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            document.getElementById('tgl_mulai').valueAsDate = firstDay;
+            document.getElementById('tgl_selesai').valueAsDate = today;
+
+            muatCabang();
+        });
+
+        async function muatCabang() {
+            try {
+                const res = await fetch('/api/cabang');
+                if (res.ok) {
+                    const data = await res.json();
+                    const sel = document.getElementById('kode_cabang');
+                    data.forEach(c => sel.innerHTML += `<option value="${c.kode}">${c.kode} - ${c.nama}</option>`);
+                }
+            } catch (e) { console.error("Gagal muat cabang"); }
+        }
+
+        async function tampilkanTrialBalance() {
+            const tglMulai = document.getElementById('tgl_mulai').value;
+            const tglSelesai = document.getElementById('tgl_selesai').value;
+            const kodeCabang = document.getElementById('kode_cabang').value;
+
+            if (!tglMulai || !tglSelesai) return alert("Pilih tanggal mulai dan selesai!");
+
+            const tbody = document.getElementById('tb-body');
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-slate-400 italic">Menghitung Neraca Saldo...</td></tr>';
+            document.getElementById('status-balance-box').classList.add('hidden');
+
+            try {
+                const res = await fetch(`/api/trial_balance?tgl_mulai=${tglMulai}&tgl_selesai=${tglSelesai}&kode_cabang=${kodeCabang}`);
+                if (!res.ok) throw new Error("Gagal mengambil data dari server");
+
+                const response = await res.json();
+                cachedData = response;
+
+                document.getElementById('print-periode-teks').innerText = `Periode: ${response.periode} | Cabang: ${kodeCabang}`;
+                tbody.innerHTML = "";
+
+                if (response.data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-slate-400 italic">Tidak ada transaksi ditemukan pada periode ini.</td></tr>';
+                    document.getElementById('tb-foot').innerHTML = "";
+                    return;
+                }
+
+                response.data.forEach(row => {
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="py-1.5 px-2 font-mono font-bold text-indigo-700 text-center">${row.kode_akun}</td>
+                            <td class="py-1.5 px-3 font-medium text-slate-800">${row.nama_akun}</td>
+                            <td class="py-1.5 px-2 text-right font-mono">${row.debit_awal > 0 ? formatRp(row.debit_awal) : '-'}</td>
+                            <td class="py-1.5 px-2 text-right font-mono">${row.kredit_awal > 0 ? formatRp(row.kredit_awal) : '-'}</td>
+                            <td class="py-1.5 px-2 text-right font-mono">${row.debit_mutasi > 0 ? formatRp(row.debit_mutasi) : '-'}</td>
+                            <td class="py-1.5 px-2 text-right font-mono">${row.kredit_mutasi > 0 ? formatRp(row.kredit_mutasi) : '-'}</td>
+                            <td class="py-1.5 px-2 text-right font-mono text-emerald-700">${row.debit_akhir > 0 ? formatRp(row.debit_akhir) : '-'}</td>
+                            <td class="py-1.5 px-2 text-right font-mono text-rose-700">${row.kredit_akhir > 0 ? formatRp(row.kredit_akhir) : '-'}</td>
+                        </tr>
+                    `;
+                });
+
+                const t = response.total;
+                document.getElementById('tb-foot').innerHTML = `
+                    <tr>
+                        <td colspan="2" class="py-2.5 px-3 text-right uppercase">T O T A L</td>
+                        <td class="py-2.5 px-2 text-right font-mono">${formatRp(t.debit_awal)}</td>
+                        <td class="py-2.5 px-2 text-right font-mono">${formatRp(t.kredit_awal)}</td>
+                        <td class="py-2.5 px-2 text-right font-mono">${formatRp(t.debit_mutasi)}</td>
+                        <td class="py-2.5 px-2 text-right font-mono">${formatRp(t.kredit_mutasi)}</td>
+                        <td class="py-2.5 px-2 text-right font-mono text-emerald-800">${formatRp(t.debit_akhir)}</td>
+                        <td class="py-2.5 px-2 text-right font-mono text-rose-800">${formatRp(t.kredit_akhir)}</td>
+                    </tr>
+                `;
+
+                // Cek Keseimbangan (Balance Check)
+                const selisih = Math.abs(t.debit_akhir - t.kredit_akhir);
+                const box = document.getElementById('status-balance-box');
+                const txt = document.getElementById('status-balance-text');
+                const selText = document.getElementById('selisih-teks');
+                box.classList.remove('hidden');
+
+                if (selisih < 1) { // Toleransi pembulatan desimal 1 rupiah
+                    box.className = "p-1.5 rounded border text-xs font-bold flex items-center justify-between bg-emerald-50 border-emerald-300 text-emerald-800";
+                    txt.innerText = "✅ NERACA SALDO SEIMBANG (BALANCE)";
+                    selText.innerText = "";
+                } else {
+                    box.className = "p-2.5 rounded border text-xs font-bold flex items-center justify-between bg-rose-50 border-rose-300 text-rose-800";
+                    txt.innerText = "❌ PERHATIAN: NERACA SALDO TIDAK SEIMBANG!";
+                    selText.innerText = `Selisih: Rp ${formatRp(selisih)}`;
+                }
+
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-rose-500">Terjadi kesalahan koneksi ke server.</td></tr>';
+            }
+        }
+
+        function exportExcel() {
+            if (!cachedData || !cachedData.data) return alert("Tampilkan data terlebih dahulu!");
+
+            const rows = [
+                ["PT. SAP BoB Nusantara"],
+                ["LAPORAN NERACA SALDO (TRIAL BALANCE)"],
+                [`Periode: ${cachedData.periode}`],
+                [],
+                ["Kode Akun", "Nama Akun", "Debit Awal", "Kredit Awal", "Debit Mutasi", "Kredit Mutasi", "Debit Akhir", "Kredit Akhir"]
+            ];
+
+            cachedData.data.forEach(r => {
+                rows.push([r.kode_akun, r.nama_akun, r.debit_awal, r.kredit_awal, r.debit_mutasi, r.kredit_mutasi, r.debit_akhir, r.kredit_akhir]);
+            });
+
+            const t = cachedData.total;
+            rows.push(["", "TOTAL", t.debit_awal, t.kredit_awal, t.debit_mutasi, t.kredit_mutasi, t.debit_akhir, t.kredit_akhir]);
+
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Neraca Saldo");
+            XLSX.writeFile(wb, `Neraca_Saldo_${cachedData.periode}.xlsx`);
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Struktur Laporan Keuangan - Modul SAP Web</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/role_akses.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen p-6 font-sans">
+
+    <div class="max-w-5xl mx-auto">
+        <div class="bg-white border border-slate-200 rounded-lg p-6 mb-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-xl font-black text-slate-900 flex items-center gap-2">
+                    <span>⚙️</span> Setup Struktur Laporan Keuangan Dinamis
+                </h1>
+                <p class="text-xs text-slate-500 mt-1">Kustomisasi nama baris pos laporan dan tentukan rentang awalan kode akun (*prefix*).</p>
+            </div>
+            <div>
+                <a href="/balance_sheet" class="bg-slate-700 hover:bg-slate-800 text-white text-xs px-4 py-2 rounded transition font-medium shadow-sm">
+                    ⬅️ Lihat Laporan Neraca
+                </a>
+            </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-lg p-6 mb-6 shadow-sm">
+            <h2 class="text-sm font-bold text-blue-800 uppercase mb-4 border-b pb-2">Tambah Baris Pos Laporan Baru</h2>
+            <form id="formSetup" onsubmit="simpanKonfigurasi(event)" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">Jenis Laporan</label>
+                    <select id="jenis_laporan" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-xs focus:outline-none focus:border-blue-600">
+                        <option value="NERACA_AKTIVA">NERACA - Aktiva</option>
+                        <option value="NERACA_PASIVA">NERACA - Pasiva / Modal</option>
+                        <option value="LABA_RUGI">LABA RUGI - Pendapatan / Beban</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">Nama Baris / Pos Laporan</label>
+                    <input type="text" id="nama_baris" required placeholder="Contoh: Kas di Bank / Biaya Gaji" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-xs focus:outline-none focus:border-blue-600">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">Prefix / Awalan Akun (Pisah koma)</label>
+                    <input type="text" id="prefix_akun" required placeholder="Contoh: 111,112 atau 61" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-xs font-mono focus:outline-none focus:border-blue-600">
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 rounded transition shadow-sm">
+                        ➕ Simpan Pos
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
+            <h2 class="text-sm font-bold text-slate-800 uppercase mb-4 border-b pb-2">Daftar Konfigurasi Pos Laporan Aktif</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-700 uppercase tracking-wider">
+                            <th class="p-3 border-b">Jenis Laporan</th>
+                            <th class="p-3 border-b">Nama Baris Pos</th>
+                            <th class="p-3 border-b">Prefix Akun Terkait</th>
+                            <th class="p-3 border-b text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelSetupBody">
+                        <tr><td colspan="4" class="text-center p-4 text-slate-400 italic">Memuat data konfigurasi...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", loadKonfigurasi);
+
+        async function loadKonfigurasi() {
+            try {
+                const res = await fetch('/api/setup_laporan');
+                if(res.ok) {
+                    const data = await res.json();
+                    const tbody = document.getElementById('tabelSetupBody');
+                    if(data.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-slate-400 italic">Belum ada konfigurasi pos laporan. Silakan tambah di atas.</td></tr>`;
+                        return;
+                    }
+                    tbody.innerHTML = data.map(item => `
+                        <tr class="hover:bg-slate-50 border-b border-slate-100">
+                            <td class="p-3 font-semibold text-blue-700">${item.jenis_laporan}</td>
+                            <td class="p-3 text-slate-900 font-medium">${item.nama_baris}</td>
+                            <td class="p-3 font-mono text-slate-600">${item.prefix_akun}</td>
+                            <td class="p-3 text-center">
+                                <button onclick="hapusKonfigurasi(${item.id})" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-2.5 py-1 rounded transition text-[11px] font-bold">
+                                    🗑️ Hapus
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        async function simpanKonfigurasi(e) {
+            e.preventDefault();
+            const payload = {
+                jenis_laporan: document.getElementById('jenis_laporan').value,
+                nama_baris: document.getElementById('nama_baris').value,
+                tipe_akun: "KUMPULAN_AKUN",
+                prefix_akun: document.getElementById('prefix_akun').value,
+                nomor_urut: 1
+            };
+
+            try {
+                const res = await fetch('/api/setup_laporan', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                if(res.ok) {
+                    alert("✅ Konfigurasi berhasil disimpan!");
+                    document.getElementById('formSetup').reset();
+                    loadKonfigurasi();
+                } else {
+                    alert("❌ Gagal menyimpan konfigurasi.");
+                }
+            } catch(err) { alert("Error koneksi server."); }
+        }
+
+        async function hapusKonfigurasi(id) {
+            if(!confirm("Yakin ingin menghapus pos baris laporan ini?")) return;
+            try {
+                const res = await fetch(`/api/setup_laporan/${id}`, { method: 'DELETE' });
+                if(res.ok) {
+                    loadKonfigurasi();
+                } else {
+                    alert("Gagal menghapus data.");
+                }
+            } catch(e) { alert("Error koneksi."); }
+        }
+    </script>
+</body>
+</html>

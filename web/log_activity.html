@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit Trail / Log Aktivitas - SAP BoB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
+        rel="stylesheet">
+    <script src="/role_akses.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+    </style>
+</head>
+
+<body class="h-full flex overflow-hidden text-slate-700">
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-100/70">
+        <!-- HEADER -->
+        <header
+            class="h-11 bg-white border-b border-slate-200 px-5 flex items-center justify-between shadow-xs z-10 flex-shrink-0">
+            <div class="flex items-center gap-2">
+                <span class="text-base">📜</span>
+                <h1 class="font-bold text-slate-800 text-xs uppercase tracking-wider">Audit Trail & Log Aktivitas
+                    Pengguna</h1>
+            </div>
+            <button onclick="muatLogAktivitas()"
+                class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-3 py-1.5 rounded text-[11px] font-semibold border border-indigo-200 transition">
+                🔄 Segarkan Data
+            </button>
+        </header>
+
+        <!-- FILTER & KONTEN -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-3 max-w-7xl mx-auto w-full">
+
+            <!-- FILTER BAR -->
+            <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-xs flex flex-wrap items-center gap-3">
+                <div>
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Filter Modul</label>
+                    <select id="filter_modul" onchange="muatLogAktivitas()"
+                        class="bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs outline-none">
+                        <option value="SEMUA">Semua Modul</option>
+                        <option value="AP_BILL">Account Payable (Tagihan)</option>
+                        <option value="AP_VENDOR">Account Payable (Master Vendor)</option>
+                        <option value="JURNAL">Jurnal Umum</option>
+                        <option value="POSTING">Persetujuan Posting</option>
+                        <option value="COA">Chart of Accounts</option>
+                        <option value="CABANG">Cabang & Organisasi</option>
+                        <option value="PROFIL">Profil Perusahaan</option>
+                        <option value="FIXED_ASSET">Fixed Asset</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Filter Jenis Aksi</label>
+                    <select id="filter_aksi" onchange="muatLogAktivitas()"
+                        class="bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs outline-none">
+                        <option value="SEMUA">Semua Aksi</option>
+                        <option value="CREATE">CREATE (Input Baru)</option>
+                        <option value="UPDATE">UPDATE (Perubahan)</option>
+                        <option value="DELETE">DELETE (Penghapusan)</option>
+                        <option value="POSTING">POSTING (Persetujuan)</option>
+                        <option value="REJECT">REJECT (Penolakan)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Cari Dokumen / User</label>
+                    <input type="text" id="filter_cari" onkeyup="filterTabelFrontend()"
+                        placeholder="Ketik nomor ref / user..."
+                        class="bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs outline-none w-48">
+                </div>
+            </div>
+
+            <!-- TABEL LOG -->
+            <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse" id="tabel_log">
+                        <thead class="bg-slate-100 text-slate-600 text-[10px] uppercase font-semibold">
+                            <tr>
+                                <th class="py-2 px-3 border-b text-slate-500 font-semibold">IP Address</th>
+                                <th class="py-2.5 px-3 border-b">Waktu Kejadian</th>
+                                <th class="py-2.5 px-3 border-b">User & Role</th>
+                                <th class="py-2.5 px-3 border-b">Modul</th>
+                                <th class="py-2.5 px-3 border-b text-center">Aksi</th>
+                                <th class="py-2.5 px-3 border-b">No. Referensi</th>
+                                <th class="py-2.5 px-3 border-b">Rincian Perubahan / Aktivitas</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabel_log_body" class="divide-y divide-slate-100 text-xs">
+                            <tr>
+                                <td class="py-1.5 px-3 font-mono text-slate-600 text-[11px]">${log.ip_address || '-'}
+                                </td>
+                                <td colspan="6" class="p-4 text-center text-slate-400 italic">Memuat riwayat log...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        let rawLogs = [];
+
+        document.addEventListener("DOMContentLoaded", () => {
+            muatLogAktivitas();
+        });
+
+        async function muatLogAktivitas() {
+            const modul = document.getElementById('filter_modul').value;
+            const aksi = document.getElementById('filter_aksi').value;
+            const tbody = document.getElementById('tabel_log_body');
+
+            tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400 italic">⏳ Memuat riwayat aktivitas...</td></tr>';
+
+            try {
+                const res = await fetch(`/api/logs?modul=${encodeURIComponent(modul)}&aksi=${encodeURIComponent(aksi)}&limit=200&_t=${Date.now()}`);
+                if (!res.ok) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-rose-500">Gagal mengambil data dari server. Periksa terminal backend.</td></tr>';
+                    return;
+                }
+                rawLogs = await res.json();
+                renderTabel(rawLogs);
+            } catch (err) {
+                console.error("Gagal load log:", err);
+                tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-rose-500">Terjadi kesalahan koneksi jaringan.</td></tr>';
+            }
+        }
+
+        function getAksiBadge(aksi) {
+            const map = {
+                'CREATE': 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                'UPDATE': 'bg-blue-100 text-blue-800 border-blue-300',
+                'POSTING': 'bg-purple-100 text-purple-800 border-purple-300',
+                'DELETE': 'bg-rose-100 text-rose-800 border-rose-300',
+                'REJECT': 'bg-amber-100 text-amber-800 border-amber-300'
+            };
+            const cls = map[aksi] || 'bg-slate-100 text-slate-700 border-slate-300';
+            return `<span class="px-2 py-0.5 rounded text-[9px] font-bold border ${cls}">${aksi}</span>`;
+        }
+
+        function renderTabel(data) {
+            const tbody = document.getElementById('tabel_log_body');
+            tbody.innerHTML = "";
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-slate-400 italic">Belum ada riwayat aktivitas yang tercatat.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(l => `
+                <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                    <td class="py-2 px-3 font-mono text-[11px] text-slate-500 whitespace-nowrap">${l.waktu}</td>
+                    <td class="py-2 px-3">
+                        <div class="font-bold text-slate-800 leading-tight">${l.username}</div>
+                        <div class="text-[10px] text-slate-400">${l.role}</div>
+                    </td>
+                    <td class="py-2 px-3 font-semibold text-slate-700">${l.modul}</td>
+                    <td class="py-2 px-3 text-center">${getAksiBadge(l.aksi)}</td>
+                    <td class="py-2 px-3 font-mono font-bold text-indigo-700">${l.referensi}</td>
+                    <td class="py-2 px-3 text-slate-600 max-w-md break-words">${l.keterangan || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function filterTabelFrontend() {
+            const q = document.getElementById('filter_cari').value.toLowerCase();
+            const filtered = rawLogs.filter(l =>
+                (l.referensi && l.referensi.toLowerCase().includes(q)) ||
+                (l.username && l.username.toLowerCase().includes(q)) ||
+                (l.keterangan && l.keterangan.toLowerCase().includes(q))
+            );
+            renderTabel(filtered);
+        }
+    </script>
+</body>
+
+</html>

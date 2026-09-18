@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chart of Account - Modul SAP BoB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="/role_akses.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .preserve-space {
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body class="h-full flex overflow-hidden text-slate-700 text-xs bg-slate-50">
+    <!-- AREA KONTEN UTAMA -->
+    <main class="w-full h-screen flex flex-col overflow-hidden bg-slate-50">
+        <header
+            class="h-10 bg-white border-b border-slate-200/80 px-4 flex items-center justify-between shadow-xs z-10 flex-shrink-0">
+            <div class="flex items-center gap-1.5 text-[11px]">
+                <span class="text-slate-400">Setup System</span> <span class="text-slate-300">/</span>
+                <h2 class="font-semibold text-slate-800">Chart of Account (COA)</h2>
+            </div>
+            <div class="flex items-center gap-2">
+                <input type="file" id="fileExcel" accept=".xlsx, .xls, .csv" class="hidden"
+                    onchange="eksekusiImportExcel(event)">
+                <button onclick="downloadTemplateExcel()"
+                    class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-[10px] px-2.5 py-1 rounded flex items-center gap-1 transition shadow-xs font-semibold">
+                    📑 Format Template
+                </button>
+                <button onclick="document.getElementById('fileExcel').click()"
+                    class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] px-2.5 py-1 rounded flex items-center gap-1 transition font-bold shadow-xs">
+                    📥 Import Excel
+                </button>
+                <button onclick="eksekusiExportExcel()"
+                    class="bg-blue-600 hover:bg-blue-700 text-white text-[10px] px-2.5 py-1 rounded flex items-center gap-1 transition font-bold shadow-xs">
+                    📤 Export Excel
+                </button>
+                <button onclick="resetDataCOA()"
+                    class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded text-[10px] font-bold transition-colors shadow-xs flex items-center gap-1 mr-2">
+                    🗑️ KOSONGKAN COA
+                </button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto px-3 pb-3 pt-1 space-y-3">
+
+            <!-- PANEL TAMBAH / EDIT AKUN -->
+            <div class="bg-white rounded border border-slate-200 shadow-sm p-1 sticky top-0 z-20 shadow-md mt-0">
+                <h3 class="font-bold text-slate-700 text-[11px] uppercase mb-1 border-b pb-1 flex items-center gap-1.5"
+                    id="form-title">
+                    <span>➕</span> Tambah Akun Baru
+                </h3>
+
+                <form id="formCoa" onsubmit="simpanAkunManual(event)" class="space-y-2">
+                    <input type="hidden" id="mode_edit" value="0">
+                    <div class="grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
+                        <div class="col-span-1">
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">No. Akun <span
+                                    class="text-rose-500">*</span></label>
+                            <input type="text" id="no_akun" required placeholder="Contoh: 1111-00"
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] focus:bg-white focus:border-indigo-500 outline-none font-mono">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Nama Akun <span
+                                    class="text-rose-500">*</span></label>
+                            <input type="text" id="nama_akun" required placeholder="Contoh: KAS BESAR"
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] focus:bg-white focus:border-indigo-500 outline-none uppercase">
+                        </div>
+                        <div class="col-span-1">
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Tipe Akun</label>
+                            <select id="tipe_akun"
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] focus:bg-white focus:border-indigo-500 outline-none">
+                                <option value="Aset">Aset</option>
+                                <option value="Kas/Bank">Kas/Bank</option>
+                                <option value="Piutang Usaha">Piutang Usaha</option>
+                                <option value="Piutang Lain-lain">Piutang Lain-lain</option>
+                                <option value="Persediaan">Persediaan</option>
+                                <option value="Aset Lancar Lainnya">Aset Lancar Lainnya</option>
+                                <option value="Aset Tetap">Aset Tetap</option>
+                                <option value="Akumulasi Penyusutan">Akumulasi Penyusutan</option>
+                                <option value="Pasiva">Pasiva</option>
+                                <option value="Hutang Usaha">Hutang Usaha</option>
+                                <option value="Hutang Lainnya">Hutang Lainnya</option>
+                                <option value="Hutang Jk Panjang">Hutang Jk Panjang</option>
+                                <option value="Hutang Jk Pendek">Hutang Jk Pendek</option>
+                                <option value="Modal">Modal</option>
+                                <option value="Pendapatan">Pendapatan</option>
+                                <option value="Beban Pokok">Harga Pokok</option>
+                                <option value="Beban Operasional">Beban Operasional</option>
+                                <option value="Pendapatan Lain-lain">Pendapatan Lain-lain</option>
+                                <option value="Beban Lain-lain">Beban Lain-lain</option>
+                                <option value="Beban Pajak">Beban Pajak</option>
+                            </select>
+                        </div>
+                        <div class="col-span-1">
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Laporan</label>
+                            <select id="laporan"
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] focus:bg-white focus:border-indigo-500 outline-none">
+                                <option value="Neraca">Neraca</option>
+                                <option value="Laba Rugi">Laba Rugi</option>
+                            </select>
+                        </div>
+                        <div class="col-span-1">
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Posisi Normal</label>
+                            <select id="posisi_normal"
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] focus:bg-white focus:border-indigo-500 outline-none">
+                                <option value="Debit">Debit</option>
+                                <option value="Kredit">Kredit</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                        <button type="button" id="btnBatalEdit" onclick="resetFormManual()"
+                            class="hidden bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1 rounded text-[11px] font-medium border border-slate-300">
+                            Batal / Reset
+                        </button>
+                        <button type="submit" id="btnSimpan"
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1 rounded text-[11px] font-semibold shadow-xs">
+                            💾 Simpan Akun
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- TABEL DAFTAR COA -->
+            <div class="bg-white rounded border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[50vh]">
+                <div class="px-3 py-2 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                    <span class="font-bold text-slate-700 text-[10px] uppercase">Daftar Akun Perkiraan (COA)
+                        Tersimpan</span>
+                    <span id="jml-akun" class="text-[9px] font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-700">0
+                        Akun</span>
+                </div>
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left border-collapse" id="tabelCoa">
+                        <thead class="bg-slate-100 text-slate-600 text-[10px]">
+                            <tr>
+                                <th class="py-2 px-3 border-b border-slate-200 uppercase font-semibold">No. Akun</th>
+                                <th class="py-2 px-3 border-b border-slate-200 uppercase font-semibold">Nama Akun</th>
+                                <th class="py-2 px-3 border-b border-slate-200 uppercase font-semibold">Tipe Akun</th>
+                                <th class="py-2 px-3 border-b border-slate-200 uppercase font-semibold">Laporan</th>
+                                <th class="py-2 px-3 border-b border-slate-200 uppercase font-semibold">Posisi Normal
+                                </th>
+                                <th
+                                    class="py-2 px-3 border-b border-slate-200 uppercase text-center w-24 font-semibold">
+                                    Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bodyTabelCoa" class="divide-y divide-slate-100 text-[11px]">
+                            <tr>
+                                <td colspan="6" class="py-6 text-center text-slate-400 italic">Memuat data COA...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        let masterCoaList = [];
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const role = (localStorage.getItem('role') || '').trim().toLowerCase();
+            const menuPosting = document.getElementById('menu-posting');
+            const menuSetupSystem = document.getElementById('section-setup-system');
+            const menuSetupUser = document.getElementById('menu-setup-user');
+
+            if (role !== 'approver' && role !== 'super_user') {
+                if (menuPosting) menuPosting.remove();
+                if (menuSetupSystem) menuSetupSystem.remove();
+            }
+            if (role !== 'super_user') {
+                if (menuSetupUser) menuSetupUser.remove();
+            }
+
+            loadCoaData();
+        });
+
+        // 1. Ambil Data Akun
+        async function loadCoaData() {
+            try {
+                const res = await fetch('/api/coa');
+                if (res.ok) {
+                    masterCoaList = await res.json();
+                    renderTabel();
+                } else {
+                    document.getElementById('bodyTabelCoa').innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">Belum ada data COA</td></tr>`;
+                }
+            } catch (err) {
+                console.error("Gagal load COA:", err);
+                document.getElementById('bodyTabelCoa').innerHTML = `<tr><td colspan="6" class="py-6 text-center text-rose-500 font-medium">Gagal terhubung ke server</td></tr>`;
+            }
+        }
+
+        // 2. Render Tabel
+        function renderTabel() {
+            const tbody = document.getElementById('bodyTabelCoa');
+            document.getElementById('jml-akun').innerText = `${masterCoaList.length} Akun`;
+
+            if (!masterCoaList || masterCoaList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400 italic">Belum ada data COA. Silakan tambah atau Import.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = masterCoaList.map((a, idx) => {
+                const noAkun = a.no_akun || a.kode_akun || a.kode || '-';
+                const namaAkun = a.nama_akun || a.nama || '-';
+                const tipeAkun = a.tipe_akun || a.kelompok || '-';
+                const laporan = a.laporan || a.kategori || a.posisi_keuangan || '-';
+                const normal = a.posisi_normal || a.saldo_normal || 'Debit';
+
+                return `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="py-2 px-3 font-mono font-bold text-indigo-700">${noAkun}</td>
+                        <td class="py-2 px-3 text-slate-800 uppercase font-medium preserve-space">${namaAkun}</td>
+                        <td class="py-2 px-3 text-slate-600">${tipeAkun}</td>
+                        <td class="py-2 px-3 text-slate-600">${laporan}</td>
+                        <td class="py-2 px-3">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${normal === 'Kredit' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}">
+                                ${normal}
+                            </span>
+                        </td>
+                        <td class="py-2 px-3 text-center whitespace-nowrap">
+                            <button onclick="editAkun(${idx})" class="p-1 rounded hover:bg-slate-200 text-blue-600 transition" title="Edit Akun">✏️</button>
+                            <button onclick="hapusAkun('${noAkun}')" class="p-1 rounded hover:bg-slate-200 text-rose-600 transition ml-1" title="Hapus Akun">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 3. Simpan / Update Manual
+        async function simpanAkunManual(e) {
+            e.preventDefault();
+            const payload = {
+                kode: document.getElementById('no_akun').value.trim(),
+                nama: document.getElementById('nama_akun').value.trim().toUpperCase(),
+                kelompok: document.getElementById('tipe_akun').value,
+                kategori: document.getElementById('laporan').value,
+                saldo_normal: document.getElementById('posisi_normal').value,
+                status: "Aktif"
+            };
+
+            try {
+                const res = await fetch('/api/coa', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    resetFormManual();
+                    loadCoaData();
+                } else {
+                    const err = await res.json();
+                    alert("Gagal menyimpan akun: " + (err.detail || "Terjadi kesalahan"));
+                }
+            } catch (err) {
+                alert("Error: " + err.message);
+            }
+        }
+
+        // 4. Form Edit Akun
+        function editAkun(idx) {
+            const item = masterCoaList[idx];
+            if (!item) return;
+
+            const noAkun = item.no_akun || item.kode_akun || item.kode;
+            const namaAkun = item.nama_akun || item.nama;
+
+            document.getElementById('mode_edit').value = "1";
+            document.getElementById('no_akun').value = noAkun;
+            document.getElementById('no_akun').readOnly = true;
+            document.getElementById('no_akun').classList.add('bg-slate-200', 'cursor-not-allowed');
+
+            document.getElementById('nama_akun').value = namaAkun;
+            document.getElementById('tipe_akun').value = item.tipe_akun || item.kelompok || 'Kas/Bank';
+            document.getElementById('laporan').value = item.laporan || item.kategori || 'Neraca';
+            document.getElementById('posisi_normal').value = item.posisi_normal || item.saldo_normal || 'Debit';
+
+            document.getElementById('form-title').innerHTML = `<span>✏️</span> Edit Akun (${noAkun})`;
+            document.getElementById('btnSimpan').innerText = "💾 Perbarui Akun";
+            document.getElementById('btnBatalEdit').classList.remove('hidden');
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 5. Reset Form
+        function resetFormManual() {
+            document.getElementById('mode_edit').value = "0";
+            document.getElementById('formCoa').reset();
+            document.getElementById('no_akun').readOnly = false;
+            document.getElementById('no_akun').classList.remove('bg-slate-200', 'cursor-not-allowed');
+
+            document.getElementById('form-title').innerHTML = `<span>➕</span> Tambah Akun Baru`;
+            document.getElementById('btnSimpan').innerText = "💾 Simpan Akun";
+            document.getElementById('btnBatalEdit').classList.add('hidden');
+        }
+
+        // 6. Hapus Akun
+        async function hapusAkun(noAkun) {
+            if (!confirm(`Yakin ingin menghapus akun ${noAkun}?`)) return;
+
+            try {
+                const res = await fetch(`/api/coa/${encodeURIComponent(noAkun)}`, { method: 'DELETE' });
+                if (res.ok) {
+                    loadCoaData();
+                } else {
+                    const err = await res.json();
+                    alert("Gagal menghapus: " + (err.detail || "Kesalahan server"));
+                }
+            } catch (err) {
+                alert("Error: " + err.message);
+            }
+        }
+
+        // 7. Download Template Excel
+        function downloadTemplateExcel() {
+            const template = [
+                { "No. Akun": "1111-00", "Nama Akun": "KAS BESAR", "Tipe Akun": "Kas/Bank", "Laporan": "Neraca", "Posisi Normal": "Debit" },
+                { "No. Akun": "1112-00", "Nama Akun": "KAS KECIL", "Tipe Akun": "Kas/Bank", "Laporan": "Neraca", "Posisi Normal": "Debit" },
+                { "No. Akun": "1120-01", "Nama Akun": "BANK BCA IDR", "Tipe Akun": "Kas/Bank", "Laporan": "Neraca", "Posisi Normal": "Debit" },
+                { "No. Akun": "1130-00", "Nama Akun": "PIUTANG USAHA", "Tipe Akun": "Piutang", "Laporan": "Neraca", "Posisi Normal": "Debit" },
+                { "No. Akun": "2110-00", "Nama Akun": "HUTANG USAHA", "Tipe Akun": "Hutang Lancar", "Laporan": "Neraca", "Posisi Normal": "Kredit" },
+                { "No. Akun": "3110-00", "Nama Akun": "MODAL DISETOR", "Tipe Akun": "Modal", "Laporan": "Neraca", "Posisi Normal": "Kredit" },
+                { "No. Akun": "4100-00", "Nama Akun": "PENDAPATAN USAHA", "Tipe Akun": "Pendapatan", "Laporan": "Laba Rugi", "Posisi Normal": "Kredit" },
+                { "No. Akun": "5100-00", "Nama Akun": "BEBAN POKOK PENDAPATAN (HPP)", "Tipe Akun": "Beban Pokok", "Laporan": "Laba Rugi", "Posisi Normal": "Debit" },
+                { "No. Akun": "6110-00", "Nama Akun": "BEBAN GAJI & TUNJANGAN", "Tipe Akun": "Beban Operasional", "Laporan": "Laba Rugi", "Posisi Normal": "Debit" }
+            ];
+
+            const ws = XLSX.utils.json_to_sheet(template);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Master COA");
+            XLSX.writeFile(wb, "Template_COA.xlsx");
+        }
+
+        // 8. Import Excel
+        async function eksekusiImportExcel(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function (evt) {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "" });
+
+                    if (rows.length === 0) return alert("File Excel kosong!");
+
+                    const normalized = rows.map(r => {
+                        const getKey = (...variants) => {
+                            for (let v of variants) {
+                                const found = Object.keys(r).find(k => k.trim().toLowerCase() === v.toLowerCase());
+                                if (found && r[found] !== "") return String(r[found]).trim();
+                            }
+                            return "";
+                        };
+
+                        return {
+                            kode: getKey("no. akun", "no akun", "kode akun", "kode_akun", "no_akun", "kode"),
+                            nama: getKey("nama akun", "nama_akun", "nama", "account name"),
+                            kelompok: getKey("tipe akun", "tipe_akun", "tipe", "kelompok"),
+                            kategori: getKey("laporan", "posisi keuangan", "posisi_keuangan", "kategori"),
+                            saldo_normal: getKey("posisi normal", "posisi_normal", "saldo normal", "saldo_normal", "saldo") || "Debit",
+                            status: getKey("status") || "Aktif"
+                        };
+                    }).filter(item => item.kode && item.nama);
+
+                    if (normalized.length === 0) {
+                        return alert("Format kolom tidak cocok. Pastikan ada kolom 'No. Akun' dan 'Nama Akun'.");
+                    }
+
+                    const response = await fetch('/api/coa/bulk-import', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ data: normalized })
+                    });
+
+                    if (response.ok) {
+                        alert(`Berhasil mengimpor ${normalized.length} data akun COA!`);
+                        loadCoaData();
+                    } else {
+                        const err = await response.json();
+                        alert("Gagal import: " + (err.detail || "Kesalahan server"));
+                    }
+                } catch (error) {
+                    alert("Gagal membaca file Excel: " + error.message);
+                } finally {
+                    e.target.value = "";
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // 9. Export Excel
+        function eksekusiExportExcel() {
+            if (!masterCoaList || masterCoaList.length === 0) {
+                return alert("Tidak ada data akun untuk diekspor!");
+            }
+
+            const exportData = masterCoaList.map(a => ({
+                "No. Akun": a.no_akun || a.kode_akun || a.kode,
+                "Nama Akun": a.nama_akun || a.nama,
+                "Tipe Akun": a.tipe_akun || a.kelompok || "",
+                "Laporan": a.laporan || a.kategori || a.posisi_keuangan || "",
+                "Posisi Normal": a.posisi_normal || a.saldo_normal || "Debit"
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Master COA");
+            XLSX.writeFile(wb, `Master_COA_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        }
+
+        // FUNGSI RESET / HAPUS SEMUA DATA COA
+        async function resetDataCOA() {
+            const konfirmasi = confirm("PERINGATAN KERAS!\n\nApakah Anda yakin ingin MENGHAPUS SEMUA DATA COA?\nTindakan ini akan mengosongkan seluruh master akun dan tidak bisa dibatalkan.");
+            if (!konfirmasi) return;
+
+            try {
+                const res = await fetch('/api/coa/hapus_semua', { method: 'POST' });
+                const json = await res.json();
+
+                if (res.ok) {
+                    alert("✅ BERHASIL: " + json.pesan);
+                    loadCoaData(); // Panggil fungsi muat tabel agar langsung ter-refresh menjadi kosong
+                } else {
+                    alert("❌ GAGAL: " + json.detail);
+                }
+            } catch (e) {
+                alert("Error koneksi: " + e.message);
+            }
+        }
+    </script>
+</body>
+
+</html>

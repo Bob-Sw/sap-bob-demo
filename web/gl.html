@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jurnal Umum - Modul SAP BoB</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <script src="/role_akses.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .ts-control {
+            padding: 4px 6px !important;
+            font-size: 10px !important;
+            border-color: #e2e8f0 !important;
+            background-color: #f8fafc !important;
+            border-radius: 0.25rem !important;
+            min-height: 26px !important;
+        }
+
+        .ts-dropdown,
+        .ts-dropdown .option {
+            font-size: 10px !important;
+        }
+
+        .ts-wrapper.single .ts-control:after {
+            right: 8px;
+        }
+    </style>
+</head>
+
+<body class="h-full flex overflow-hidden text-slate-700 text-xs">
+
+    <aside
+        class="w-48 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800 shadow-xl z-20">
+        <div class="h-12 px-3 bg-slate-950/80 flex items-center gap-2 border-b border-slate-800/80">
+            <img src="/Logo_SAP.png" alt="Logo" class="h-6 w-auto object-contain"
+                onerror="this.onerror=null; this.src='Logo_SAP.png';">
+            <h1 class="text-xs font-bold text-white tracking-wide">SAP BoB</h1>
+
+        </div>
+        <nav class="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
+            <div class="px-2 pb-1.5 text-[9px] font-semibold text-slate-500 uppercase tracking-wider">Modul Akuntansi
+            </div>
+            <a href="/dashboard"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>📊</span>
+                Dashboard</a>
+            <a href="/gl" target="_blank"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-semibold text-white bg-indigo-600/90 shadow-sm transition-all"><span>📓</span>
+                Jurnal Umum</a>
+            <a href="/buku_besar" target="_blank"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>📖</span>
+                Buku Besar</a>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-100/70">
+        <header
+            class="h-10 bg-white border-b border-slate-200/80 px-4 flex items-center justify-between shadow-xs z-10 flex-shrink-0">
+            <div class="flex items-center gap-1.5 text-[11px]">
+                <span class="text-slate-400">Akuntansi</span> <span class="text-slate-300">/</span>
+                <h2 class="font-semibold text-slate-800">Entri Jurnal Umum (GL)</h2>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+
+            <div class="bg-white rounded border border-slate-200 shadow-sm p-3">
+                <h3 class="font-bold text-slate-700 text-[11px] uppercase mb-2 border-b pb-1">📄 Header Transaksi</h3>
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Kode Voucher</label>
+                        <select id="kode_voucher" onchange="generateAutoRef()"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] focus:bg-white focus:border-indigo-500 outline-none">
+                            <option value="">Memuat...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Tanggal Transaksi</label>
+                        <input type="date" id="tgl_jurnal" onchange="generateAutoRef()"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] focus:bg-white focus:border-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">No Referensi</label>
+                        <input type="text" id="no_referensi"
+                            class="w-full bg-slate-100 border border-slate-200 rounded px-2 py-1 text-[11px] font-mono text-indigo-700 font-bold outline-none"
+                            readonly>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Cabang</label>
+                        <select id="kode_cabang"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] focus:bg-white focus:border-indigo-500 outline-none">
+                            <option value="">Memuat...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Departemen</label>
+                        <select id="kode_departemen"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] focus:bg-white focus:border-indigo-500 outline-none">
+                            <option value="">Memuat...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded border border-slate-200 shadow-sm flex flex-col min-h-[40vh]">
+                <div
+                    class="px-3 py-2 bg-slate-50 border-b border-slate-200 flex justify-between items-center flex-shrink-0">
+                    <span class="font-bold text-slate-600 text-[10px] uppercase">Rincian Akun (Debit/Kredit)</span>
+                    <button onclick="tambahBaris()"
+                        class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold px-2 py-1 rounded text-[10px] transition-colors flex items-center gap-1">
+                        ➕ Tambah Baris
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto flex-1 p-2">
+                    <table class="w-full text-left border-collapse" id="tabel-jurnal">
+                        <thead class="text-slate-500 text-[10px] border-b border-slate-200">
+                            <tr>
+                                <th class="py-1 px-2 font-semibold w-1/3">Akun (COA)</th>
+                                <th class="py-1 px-2 font-semibold w-1/3">Keterangan Baris</th>
+                                <th class="py-1 px-2 font-semibold text-right w-1/6">Debit (Rp)</th>
+                                <th class="py-1 px-2 font-semibold text-right w-1/6">Kredit (Rp)</th>
+                                <th class="py-1 px-2 font-semibold text-center w-10">❌</th>
+                            </tr>
+                        </thead>
+                        <tbody id="body-jurnal" class="text-[11px]">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="bg-slate-50 border-t border-slate-200 p-3 flex-shrink-0">
+                    <div class="flex justify-end items-center gap-4 mb-3">
+                        <div class="text-right">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase block">Total Debit</span>
+                            <span id="total-debit" class="text-sm font-mono font-bold text-emerald-600">Rp 0</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase block">Total Kredit</span>
+                            <span id="total-kredit" class="text-sm font-mono font-bold text-rose-600">Rp 0</span>
+                        </div>
+                        <div class="text-right pl-4 border-l border-slate-300">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase block">Selisih (Balance)</span>
+                            <span id="selisih" class="text-sm font-mono font-bold text-slate-400">Rp 0</span>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center border-t border-slate-200 pt-3">
+                        <button type="button" onclick="cetakUlangCepat()"
+                            class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded text-[11px] font-semibold border border-slate-300 flex items-center gap-1.5">
+                            🖨️ Cetak Ulang Voucher</button>
+                        <button type="button" onclick="bukaModalDraft()"
+                            class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-3 py-1.5 rounded text-[11px] font-bold border border-amber-300 flex items-center gap-1">
+                            📂 Buka Draft Jurnal</button>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="window.location.reload()"
+                                class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1.5 rounded text-[11px] font-semibold">Batal</button>
+
+                            <button type="button" onclick="simpanJurnal('Draft')"
+                                class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded text-[11px] font-bold shadow-sm flex items-center gap-1">
+                                💾 SIMPAN DRAFT
+                            </button>
+
+                            <button type="button" onclick="simpanJurnal('Pending')"
+                                class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-1.5 rounded text-[11px] font-bold shadow-md flex items-center gap-1">
+                                🚀 AJUKAN POSTING
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // ==========================================
+        // 1. PROTEKSI HAK AKSES SIDEBAR
+        // ==========================================
+        document.addEventListener("DOMContentLoaded", () => {
+            const role = (localStorage.getItem('role') || '').trim().toLowerCase();
+            const menuPosting = document.getElementById('menu-posting');
+            const menuSetupSystem = document.getElementById('section-setup-system');
+            const menuSetupUser = document.getElementById('menu-setup-user');
+            const menuTrialBalance = document.getElementById('menu-trial-balance');
+
+            if (role !== 'approver' && role !== 'super_user') {
+                if (menuPosting) menuPosting.remove();
+                if (menuSetupSystem) menuSetupSystem.remove();
+                if (menuTrialBalance) menuTrialBalance.remove();
+            }
+            if (role !== 'super_user') {
+                if (menuSetupUser) menuSetupUser.remove();
+            }
+
+            // Set default tanggal hari ini lalu muat semua master data
+            document.getElementById('tgl_jurnal').valueAsDate = new Date();
+            muatSemuaMasterData();
+        });
+
+        // ==========================================
+        // 2. VARIABEL GLOBAL UNTUK MENYIMPAN MASTER DATA
+        // ==========================================
+        let daftarCOA = [];
+
+        const formatRp = (angka) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+
+        // ==========================================
+        // 3. FUNGSI PEMANGGIL SEMUA API MASTER DATA
+        // ==========================================
+        async function muatSemuaMasterData() {
+            // A. Load COA (Mandiri)
+            try {
+                const resCOA = await fetch('/api/coa');
+                if (resCOA.ok) daftarCOA = await resCOA.json();
+            } catch (e) { console.error("Gagal muat COA", e); }
+
+            // B. Load Voucher (Mandiri)
+            try {
+                const resVoucher = await fetch('/api/voucher');
+                const selV = document.getElementById('kode_voucher');
+                selV.innerHTML = '';
+                if (resVoucher.ok) {
+                    const dataVoucher = await resVoucher.json();
+                    if (dataVoucher.length === 0) selV.innerHTML = '<option value="">(Belum Ada Voucher)</option>';
+                    dataVoucher.forEach(v => selV.innerHTML += `<option value="${v.kode}">${v.kode} - ${v.nama}</option>`);
+                }
+            } catch (e) { console.error("Gagal muat Voucher", e); }
+
+            // C. Load Cabang (Mandiri)
+            try {
+                const resCabang = await fetch('/api/cabang');
+                const selC = document.getElementById('kode_cabang');
+                selC.innerHTML = '';
+                if (resCabang.ok) {
+                    const dataCabang = await resCabang.json();
+                    if (dataCabang.length === 0) selC.innerHTML = '<option value="HO">HO - Head Office</option>';
+                    dataCabang.forEach(c => selC.innerHTML += `<option value="${c.kode}">${c.kode} - ${c.nama}</option>`);
+                }
+            } catch (e) { console.error("Gagal muat Cabang", e); }
+
+            // D. Load Departemen (Mandiri)
+            try {
+                const resDept = await fetch('/api/departemen');
+                const selD = document.getElementById('kode_departemen');
+                selD.innerHTML = '';
+                if (resDept.ok) {
+                    const dataDept = await resDept.json();
+                    if (dataDept.length === 0) selD.innerHTML = '<option value="FIN">FIN - Finance</option>';
+                    dataDept.forEach(d => selD.innerHTML += `<option value="${d.kode}">${d.kode} - ${d.nama}</option>`);
+                }
+            } catch (e) { console.error("Gagal muat Dept", e); }
+
+            // E. Setup UI Awal (Pasti dijalankan apapun yang terjadi)
+            generateAutoRef();
+            tambahBaris();
+            tambahBaris();
+        }
+
+        // ==========================================
+        // 4. GENERATE AUTO REFERENSI JURNAL
+        // ==========================================
+        async function generateAutoRef() {
+            const voucher = document.getElementById('kode_voucher').value;
+            const tgl = document.getElementById('tgl_jurnal').value;
+
+            if (!tgl || !voucher) {
+                document.getElementById('no_referensi').value = "";
+                return;
+            }
+
+            // Format Periode menjadi YYYYMM (Contoh: 202608)
+            const dateObj = new Date(tgl);
+            const yyyy = dateObj.getFullYear();
+            const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const periode = `${yyyy}${mm}`;
+
+            try {
+                // Minta nomor urut terbaru dari backend Python
+                const res = await fetch(`/api/jurnal/next_ref?voucher=${voucher}&periode=${periode}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('no_referensi').value = data.next_ref;
+                }
+            } catch (e) {
+                console.error("Gagal membuat auto-ref:", e);
+                document.getElementById('no_referensi').value = "ERROR-KONEKSI";
+            }
+        }
+
+        // ==========================================
+        // 5.TAMBAH/HAPUS/HITUNG BARIS JURNAL
+        // ==========================================
+        function tambahBaris() {
+            const tbody = document.getElementById('body-jurnal');
+            const tr = document.createElement('tr');
+            tr.className = "border-b border-slate-100 hover:bg-slate-50 transition-colors";
+
+            // Buat pilihan Option Akun dari daftarCOA dengan pengaman nilai null
+            let opsiAkun = '<option value="">-- Pilih Akun --</option>';
+            daftarCOA.forEach(a => {
+                let namaBersih = (a.nama || '').trim(); // Cegah error jika nama kosong di DB
+                opsiAkun += `<option value="${a.kode}">${a.kode} - ${namaBersih}</option>`;
+            });
+
+            tr.innerHTML = `
+                <td class="py-1.5 px-1">
+                    <select class="w-full bg-slate-50 border border-slate-200 rounded px-1.5 py-1.5 text-[10px] focus:bg-white outline-none input-akun">
+                        ${opsiAkun}
+                    </select>
+                </td>
+                <td class="py-1.5 px-1">
+                    <input type="text" placeholder="Keterangan..." class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] focus:bg-white outline-none input-ket">
+                </td>
+                <td class="py-1.5 px-1">
+                    <input type="number" min="0" value="0" oninput="hitungTotal()" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] text-right focus:bg-white outline-none input-debit">
+                </td>
+                <td class="py-1.5 px-1">
+                    <input type="number" min="0" value="0" oninput="hitungTotal()" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] text-right focus:bg-white outline-none input-kredit">
+                </td>
+                <td class="py-1.5 px-1 text-center">
+                    <button onclick="hapusBaris(this)" class="text-rose-400 hover:text-rose-600 font-bold px-1 text-[10px]">❌</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            new TomSelect(tr.querySelector('.input-akun'), {
+                create: false,
+                maxOptions: null,
+                placeholder: "🔍 Cari Kode / Nama Akun...",
+                sortField: { field: "text", order: "asc" },
+                searchField: ['text', 'value'],
+                dropdownParent: 'body'
+            });
+        }
+
+        // ==========================================
+        // 6. SIMPAN DATA KE API PYTHON
+        // ==========================================
+        async function simpanJurnal() {
+            const detail = [];
+            let totalDeb = 0;
+            let totalKre = 0;
+            let barisError = false;
+
+            // Kumpulkan data dari tabel terlebih dahulu
+            document.querySelectorAll('#body-jurnal tr').forEach(tr => {
+                const kodeAkun = tr.querySelector('.input-akun').value;
+                const ket = tr.querySelector('.input-ket').value;
+                const deb = parseFloat(tr.querySelector('.input-debit').value) || 0;
+                const kre = parseFloat(tr.querySelector('.input-kredit').value) || 0;
+
+                if (!kodeAkun && deb === 0 && kre === 0) return;
+                if (!kodeAkun && (deb > 0 || kre > 0)) {
+                    barisError = true;
+                    return;
+                }
+
+                if (deb > 0 || kre > 0) {
+                    detail.push({
+                        kode_akun: kodeAkun,
+                        keterangan: ket || "Entri Jurnal",
+                        debit: deb,
+                        kredit: kre
+                    });
+                    totalDeb += deb;
+                    totalKre += kre;
+                }
+            });
+
+            if (barisError) return alert("Ada baris yang diisi nominalnya tapi Akun (COA) belum dipilih!");
+            if (detail.length < 2) return alert("Jurnal minimal harus memiliki 2 baris (Debit & Kredit).");
+            if (totalDeb !== totalKre) return alert(`JURNAL TIDAK BALANCE (Selisih Rp ${Math.abs(totalDeb - totalKre)}). Transaksi ditolak!`);
+
+            // Siapkan Data Header yang LENGKAP
+            const header = {
+                no_referensi: document.getElementById('no_referensi').value,
+                tanggal: document.getElementById('tgl_jurnal').value,
+                kode_voucher: document.getElementById('kode_voucher').value, // Ditambahkan
+                kode_cabang: document.getElementById('kode_cabang').value,
+                kode_departemen: document.getElementById('kode_departemen').value,
+                keterangan: detail[0].keterangan, // Ambil keterangan dari baris pertama
+                total_debit: totalDeb,            // Ditambahkan
+                total_kredit: totalKre,           // Ditambahkan
+                pembuat: localStorage.getItem('username') || 'Unknown',
+                status: "Pending"
+            };
+
+            if (!header.no_referensi || !header.tanggal || !header.kode_cabang || !header.kode_voucher) {
+                return alert("Data Header (Tanggal, Cabang, Voucher, No Ref) tidak lengkap!");
+            }
+
+            const payload = {
+                header: header,
+                detail: detail
+            };
+
+            try {
+                const btn = document.querySelector('button[onclick="simpanJurnal()"]');
+                btn.innerHTML = "⏳ Mengirim..."; btn.disabled = true;
+
+                const res = await fetch('/api/jurnal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await res.json();
+
+                if (res.ok) {
+                    const noRef = header.no_referensi;
+                    const pesan = result.pesan || "Jurnal berhasil disimpan!";
+
+                    // Konfirmasi cetak
+                    if (confirm(`✅ ${pesan}\n\nApakah Anda ingin langsung MENCETAK BUKTI VOUCHER ini?`)) {
+                        // Alihkan tab atau buka window secara aman
+                        const w = window.open(`/cetak_jurnal?ref=${encodeURIComponent(noRef)}`, '_blank');
+                        if (!w) {
+                            alert("⚠️ Jendela pop-up diblokir peramban. Silakan izinkan pop-up di address bar.");
+                        }
+                    }
+
+                    // Kosongkan form dan reload
+                    window.location.reload();
+                } else {
+                    alert("❌ GAGAL: " + (result.detail || "Terjadi kesalahan."));
+                }
+            } catch (e) {
+                alert("Kesalahan Jaringan saat menghubungi Server.");
+            } finally {
+                const btn = document.querySelector('button[onclick="simpanJurnal()"]');
+                btn.innerHTML = "🚀 AJUKAN POSTING"; btn.disabled = false;
+            }
+        }
+
+        // ==========================================
+        // FITUR CETAK ULANG VOUCHER DARI LAYAR
+        // ==========================================
+        function cetakUlangCepat() {
+            const noRef = prompt("Masukkan Nomor Referensi Jurnal yang ingin dicetak ulang:\n(Contoh: JV 202608-001 atau BKK 202608-001)");
+            if (!noRef || noRef.trim() === "") return;
+
+            // Bersihkan karakter spasi di awal/akhir
+            const refBersih = noRef.trim();
+
+            // Buka tab baru langsung
+            const win = window.open(`/cetak_jurnal?ref=${encodeURIComponent(refBersih)}`, '_blank');
+            if (!win) {
+                alert("⚠️ Jendela cetak diblokir oleh browser!\nHarap izinkan Pop-up pada address bar browser Anda.");
+            }
+        }
+        // ==========================================
+        // SIMPAN JURNAL 
+        // ==========================================
+        async function simpanJurnal(statusTujuan = "Pending") {
+            const baris_detail = [];
+            let totalDeb = 0;
+            let totalKre = 0;
+            let barisError = false;
+
+            document.querySelectorAll('#body-jurnal tr').forEach(tr => {
+                const kodeAkun = tr.querySelector('.input-akun').value;
+                const ket = tr.querySelector('.input-ket').value;
+                const deb = parseFloat(tr.querySelector('.input-debit').value) || 0;
+                const kre = parseFloat(tr.querySelector('.input-kredit').value) || 0;
+
+                if (!kodeAkun && deb === 0 && kre === 0) return;
+                if (!kodeAkun && (deb > 0 || kre > 0)) {
+                    barisError = true;
+                    return;
+                }
+
+                if (deb > 0 || kre > 0) {
+                    // Ambil teks nama akun dari dropdown
+                    const selAkun = tr.querySelector('.input-akun');
+                    let namaAkunTeks = "-";
+                    if (selAkun.selectedIndex > 0) {
+                        const rawTeks = selAkun.options[selAkun.selectedIndex].text;
+                        namaAkunTeks = rawTeks.substring(rawTeks.indexOf('-') + 1).trim() || "-";
+                    }
+
+                    baris_detail.push({
+                        kode_akun: kodeAkun,
+                        nama_akun: namaAkunTeks,
+                        keterangan: ket || "Entri Jurnal",
+                        debit: deb,
+                        kredit: kre
+                    });
+                    totalDeb += deb;
+                    totalKre += kre;
+                }
+            });
+
+            if (barisError) return alert("Ada baris yang diisi nominalnya tapi Akun (COA) belum dipilih!");
+            if (baris_detail.length < 2) return alert("Jurnal minimal harus memiliki 2 baris (Debit & Kredit).");
+
+            if (statusTujuan === "Pending" && totalDeb !== totalKre) {
+                return alert(`JURNAL TIDAK BALANCE (Selisih Rp ${Math.abs(totalDeb - totalKre)}).\n\nAnda bisa menyimpannya sebagai DRAFT terlebih dahulu jika belum selesai.`);
+            }
+
+            // Struktur Payload Disesuaikan dengan API Universal Pydantic
+            const payload = {
+                no_referensi: document.getElementById('no_referensi').value,
+                tanggal: document.getElementById('tgl_jurnal').value,
+                kode_voucher: document.getElementById('kode_voucher').value,
+                kode_cabang: document.getElementById('kode_cabang') ? document.getElementById('kode_cabang').value : "HO",
+                kode_departemen: document.getElementById('kode_departemen') ? document.getElementById('kode_departemen').value : "FIN",
+                status: statusTujuan,
+                baris_detail: baris_detail
+            };
+
+            if (!payload.no_referensi || !payload.tanggal || !payload.kode_voucher) {
+                return alert("Data Header (Tanggal, Voucher, No Ref) tidak lengkap!");
+            }
+
+            try {
+                const btn = document.querySelector(`button[onclick="simpanJurnal('${statusTujuan}')"]`);
+                const teksAsli = btn ? btn.innerHTML : "";
+                if (btn) { btn.innerHTML = "⏳ Mengirim..."; btn.disabled = true; }
+
+                const res = await fetch('/api/jurnal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await res.json();
+
+                if (res.ok) {
+                    const mauCetak = confirm(`✅ ${result.pesan}\n\nApakah Anda ingin mencetak BUKTI VOUCHER ini sekarang?`);
+                    if (mauCetak) {
+                        window.open(`/cetak_jurnal?ref=${encodeURIComponent(payload.no_referensi)}`, '_blank');
+                    }
+                    window.location.reload();
+                } else {
+                    alert("❌ GAGAL: " + (result.detail || result.pesan));
+                }
+            } catch (e) {
+                alert("Kesalahan jaringan saat menghubungi Server.");
+            }
+        }
+
+        // ========================
+        // FUNGSI MEMANGGIL DRAFT
+        // ========================
+        async function panggilDraft(noRef) {
+            try {
+                // Gunakan API detail jurnal standar
+                const res = await fetch(`/api/jurnal/detail/${encodeURIComponent(noRef)}`);
+                if (!res.ok) {
+                    const errText = await res.text();
+                    return alert("Gagal mengambil data dari Server: " + errText);
+                }
+
+                // Data sekarang berbentuk flat, bukan lagi data.header
+                const data = await res.json();
+                const detail = data.detail || [];
+
+                // 1. Isikan Form secara aman
+                if (document.getElementById('kode_voucher') && data.kode_voucher) document.getElementById('kode_voucher').value = data.kode_voucher;
+                if (document.getElementById('tgl_jurnal') && data.tanggal) document.getElementById('tgl_jurnal').value = data.tanggal;
+                if (document.getElementById('no_referensi') && data.no_referensi) document.getElementById('no_referensi').value = data.no_referensi;
+                if (document.getElementById('kode_cabang') && data.kode_cabang) document.getElementById('kode_cabang').value = data.kode_cabang;
+                if (document.getElementById('kode_departemen') && data.kode_departemen) document.getElementById('kode_departemen').value = data.kode_departemen;
+
+                // 2. Kosongkan Tabel Baris Jurnal
+                const tbody = document.getElementById('body-jurnal');
+                if (!tbody) return alert("Error UI: Tabel Jurnal tidak ditemukan!");
+                tbody.innerHTML = '';
+
+                // 3. Masukkan Baris Detail dari Draft
+                detail.forEach(d => {
+                    let opsiAkun = '<option value="">-- Pilih Akun --</option>';
+                    if (typeof daftarCOA !== 'undefined' && Array.isArray(daftarCOA)) {
+                        daftarCOA.forEach(a => {
+                            let isSelected = (a.kode === d.kode_akun) ? 'selected' : '';
+                            opsiAkun += `<option value="${a.kode}" ${isSelected}>${a.kode} - ${(a.nama || '').trim()}</option>`;
+                        });
+                    }
+
+                    const tr = document.createElement('tr');
+                    tr.className = "border-b border-slate-100 hover:bg-slate-50 transition-colors";
+                    tr.innerHTML = `
+                        <td class="py-1.5 px-1">
+                            <select class="w-full bg-slate-50 border border-slate-200 rounded px-1.5 py-1.5 text-[10px] focus:bg-white outline-none input-akun">
+                                ${opsiAkun}
+                            </select>
+                        </td>
+                        <td class="py-1.5 px-1">
+                            <input type="text" value="${d.keterangan || ''}" placeholder="Keterangan..." class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] focus:bg-white outline-none input-ket">
+                        </td>
+                        <td class="py-1.5 px-1">
+                            <input type="number" min="0" value="${d.debit || 0}" oninput="hitungTotal()" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] text-right focus:bg-white outline-none input-debit">
+                        </td>
+                        <td class="py-1.5 px-1">
+                            <input type="number" min="0" value="${d.kredit || 0}" oninput="hitungTotal()" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] text-right focus:bg-white outline-none input-kredit">
+                        </td>
+                        <td class="py-1.5 px-1 text-center">
+                            <button onclick="hapusBaris(this)" class="text-rose-400 hover:text-rose-600 font-bold px-1 text-[10px]">❌</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                // 4. Hitung Ulang Total & Tutup Modal
+                if (typeof hitungTotal === 'function') hitungTotal();
+                if (typeof tutupModalDraft === 'function') tutupModalDraft();
+
+                alert(`📂 Draft ${data.no_referensi} berhasil dimuat ke formulir!\n\nSilakan edit/lengkapi data, lalu klik '🚀 AJUKAN POSTING'.`);
+
+            } catch (e) {
+                console.error("Detail Error JS:", e);
+                alert("Kesalahan JS: " + e.message);
+            }
+        }
+
+
+        // ==========================================
+        // FUNGSI MEMANGGAL DAN MEMASUKKAN DRAFT KE FORM
+        // ==========================================
+        window.bukaModalDraft = async function () {
+            const modal = document.getElementById('modal-draft');
+            if (!modal) {
+                alert("Elemen modal draft tidak ditemukan di halaman!");
+                return;
+            }
+
+            modal.classList.remove('hidden');
+            const tbody = document.getElementById('tabel-draft-body');
+            tbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-slate-400 italic">Memuat data draft...</td></tr>';
+
+            try {
+                const res = await fetch(`/api/jurnal/drafts?_t=${Date.now()}`);
+                const drafts = await res.json();
+                tbody.innerHTML = '';
+
+                if (!drafts || drafts.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-slate-400 italic">Tidak ada draft tersimpan.</td></tr>';
+                    return;
+                }
+
+                drafts.forEach(d => {
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-amber-50/50 transition-colors">
+                            <td class="py-1.5 px-2 font-mono font-bold text-amber-800">${d.no_referensi}</td>
+                            <td class="py-1.5 px-2 text-slate-600 font-mono">${d.tanggal}</td>
+                            <td class="py-1.5 px-2 text-slate-700 truncate max-w-[200px]">${d.keterangan || '-'}</td>
+                            <td class="py-1.5 px-2 text-right font-mono font-bold text-emerald-600">${formatRp(d.total_debit || 0)}</td>
+                            <td class="py-1.5 px-2 text-center">
+                                <button type="button" onclick="window.panggilDraft('${d.no_referensi}')" class="bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-0.5 rounded text-[10px] font-bold shadow-xs cursor-pointer">
+                                    ✏️ Buka
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-rose-500 font-semibold">Gagal memuat daftar draft dari server.</td></tr>';
+            }
+        };
+
+        window.tutupModalDraft = function () {
+            const modal = document.getElementById('modal-draft');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        async function panggilDraft(noRef) {
+            try {
+                const res = await fetch(`/api/jurnal/cetak/${encodeURIComponent(noRef)}`);
+                if (!res.ok) {
+                    const errText = await res.text();
+                    return alert("Gagal mengambil data dari Server: " + errText);
+                }
+
+                const data = await res.json();
+                const head = data.header;
+                const detail = data.detail || [];
+
+                // 1. Isikan Header Form secara aman (bypass jika data kosong)
+                if (head) {
+                    if (document.getElementById('kode_voucher') && head.kode_voucher) document.getElementById('kode_voucher').value = head.kode_voucher;
+                    if (document.getElementById('tgl_jurnal') && head.tanggal) document.getElementById('tgl_jurnal').value = head.tanggal;
+                    if (document.getElementById('no_referensi') && head.no_referensi) document.getElementById('no_referensi').value = head.no_referensi;
+                    if (document.getElementById('kode_cabang') && head.kode_cabang) document.getElementById('kode_cabang').value = head.kode_cabang;
+                    if (document.getElementById('kode_departemen') && head.kode_departemen) document.getElementById('kode_departemen').value = head.kode_departemen;
+                }
+
+                // 2. Kosongkan Tabel Baris Jurnal
+                const tbody = document.getElementById('body-jurnal');
+                if (!tbody) return alert("Error UI: Tabel Jurnal tidak ditemukan!");
+                tbody.innerHTML = '';
+
+                // 3. Masukkan Baris Detail dari Draft
+                detail.forEach(d => {
+                    let opsiAkun = '<option value="">-- Pilih Akun --</option>';
+                    // Pastikan daftarCOA tidak error saat di-loop
+                    if (typeof daftarCOA !== 'undefined' && Array.isArray(daftarCOA)) {
+                        daftarCOA.forEach(a => {
+                            let isSelected = (a.kode === d.kode_akun) ? 'selected' : '';
+                            opsiAkun += `<option value="${a.kode}" ${isSelected}>${a.kode} - ${(a.nama || '').trim()}</option>`;
+                        });
+                    }
+
+                    const tr = document.createElement('tr');
+                    tr.className = "border-b border-slate-100 hover:bg-slate-50 transition-colors";
+                    tr.innerHTML = `
+                        <td class="py-1.5 px-1">
+                            <select class="w-full bg-slate-50 border border-slate-200 rounded px-1.5 py-1.5 text-[10px] focus:bg-white outline-none input-akun">
+                                ${opsiAkun}
+                            </select>
+                        </td>
+                        <td class="py-1.5 px-1">
+                            <input type="text" value="${d.keterangan || ''}" placeholder="Keterangan..." class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] focus:bg-white outline-none input-ket">
+                        </td>
+                        <td class="py-1.5 px-1">
+                            <input type="number" min="0" value="${d.debit || 0}" oninput="hitungTotal()" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] text-right focus:bg-white outline-none input-debit">
+                        </td>
+                        <td class="py-1.5 px-1">
+                            <input type="number" min="0" value="${d.kredit || 0}" oninput="hitungTotal()" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] text-right focus:bg-white outline-none input-kredit">
+                        </td>
+                        <td class="py-1.5 px-1 text-center">
+                            <button onclick="hapusBaris(this)" class="text-rose-400 hover:text-rose-600 font-bold px-1 text-[10px]">❌</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+
+                    new TomSelect(tr.querySelector('.input-akun'), {
+                        create: false,
+                        placeholder: "🔍 Cari Kode / Nama Akun..."
+                    });
+                });
+
+                // 4. Hitung Ulang Total & Tutup Modal
+                if (typeof hitungTotal === 'function') hitungTotal();
+                if (typeof tutupModalDraft === 'function') tutupModalDraft();
+
+                alert(`📂 Draft ${head.no_referensi} berhasil dimuat ke formulir!\n\nSilakan edit/lengkapi data, lalu klik '🚀 AJUKAN POSTING'.`);
+
+            } catch (e) {
+                console.error("Detail Error JS:", e);
+                // Menampilkan error secara spesifik agar kita tahu baris mana yang rusak
+                alert("Kesalahan JS: " + e.message);
+            }
+        }
+
+        // Fungsi untuk mengecek apakah ada perubahan/input yang belum tersimpan
+        window.hasUnsavedChanges = function () {
+            let adaData = false;
+
+            // 1. Cek jika ada baris jurnal di tabel yang sudah terisi akun atau nominal
+            const rows = document.querySelectorAll('#body-jurnal tr');
+            rows.forEach(tr => {
+                const akun = tr.querySelector('.input-akun')?.value || '';
+                const debit = parseFloat(tr.querySelector('.input-debit')?.value) || 0;
+                const kredit = parseFloat(tr.querySelector('.input-kredit')?.value) || 0;
+                const ket = tr.querySelector('.input-ket')?.value.trim() || '';
+
+                if (akun !== '' || debit > 0 || kredit > 0 || ket !== '') {
+                    adaData = true;
+                }
+            });
+
+            // 2. Cek juga jika variabel penampung dataJurnal berisi data
+            if (typeof dataJurnal !== 'undefined' && dataJurnal.length > 0) {
+                adaData = true;
+            }
+
+            return adaData;
+        };
+    </script>
+
+    <!-- MODAL DAFTAR DRAFT (KEBAL DARI CSS WORKSPACE) -->
+    <div id="modal-draft"
+        class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-xs hidden no-print">
+        <div
+            class="bg-white rounded-lg shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden mx-4 flex flex-col max-h-[80vh]">
+            <div class="px-4 py-2.5 bg-amber-600 text-white flex justify-between items-center flex-shrink-0">
+                <h3 class="font-bold text-xs uppercase flex items-center gap-1.5">📂 Daftar Draft Jurnal Belum Selesai
+                </h3>
+                <button type="button" onclick="window.tutupModalDraft()"
+                    class="text-white hover:text-amber-200 text-lg leading-none font-bold cursor-pointer">&times;</button>
+            </div>
+            <div class="p-3 overflow-y-auto flex-1 bg-slate-50/50">
+                <table class="w-full text-left border-collapse text-[11px]">
+                    <thead class="bg-slate-100 text-slate-600 text-[10px] sticky top-0">
+                        <tr>
+                            <th class="py-1.5 px-2 border-b">No. Referensi</th>
+                            <th class="py-1.5 px-2 border-b">Tanggal</th>
+                            <th class="py-1.5 px-2 border-b">Keterangan</th>
+                            <th class="py-1.5 px-2 border-b text-right">Total Debit</th>
+                            <th class="py-1.5 px-2 border-b text-center w-20">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel-draft-body" class="divide-y divide-slate-100 bg-white">
+                        <tr>
+                            <td colspan="5" class="py-4 text-center text-slate-400 italic">Memuat data draft...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-2.5 bg-slate-100 border-t border-slate-200 flex justify-end flex-shrink-0">
+                <button type="button" onclick="window.tutupModalDraft()"
+                    class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3.5 py-1.5 rounded text-[11px] font-semibold cursor-pointer">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

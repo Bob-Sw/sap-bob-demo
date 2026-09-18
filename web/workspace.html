@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-100">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAP BoB - Sistem Akuntansi & Pelaporan</title>
+    <link rel="icon" type="image/x-icon" href="/web/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/role_akses.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        /* Keadaan Penuh (Expanded) */
+        .sidebar-expanded {
+            width: 210px !important;
+            min-width: 210px !important;
+        }
+
+        /* Collapsed ala Gemini */
+        .sidebar-collapsed {
+            width: 58px !important;
+            min-width: 58px !important;
+        }
+
+        /* Sembunyikan label teks dan teks brand ketika sidebar menciut */
+        .sidebar-collapsed .sidebar-text,
+        .sidebar-collapsed .arrow-icon,
+        .sidebar-collapsed .brand-title,
+        .sidebar-collapsed .sidebar-header-title {
+            display: none !important;
+        }
+
+        /* Rata tengah ikon saat mode ciut */
+        .sidebar-collapsed .menu-item,
+        .sidebar-collapsed .menu-parent-btn {
+            justify-content: center !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+
+        .sidebar-collapsed .submenu-container {
+            display: none !important;
+        }
+
+        .sidebar-collapsed #btn-toggle-sidebar {
+            margin: 0 auto !important;
+        }
+    </style>
+</head>
+
+<body class="h-full flex overflow-hidden text-slate-700 text-xs">
+
+    <!-- SIDEBAR NAVIGASI UTAMA -->
+    <aside id="main-sidebar"
+        class="fixed inset-y-0 left-0 z-50 -translate-x-full md:relative md:translate-x-0 sidebar-expanded bg-slate-950 text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800 transition-all duration-300 ease-in-out select-none">
+
+        <!-- HEADER SIDEBAR (LOGO + JUDUL + TOMBOL COLLAPSE DI KANAN ATAS) -->
+        <div class="h-12 px-2.5 flex items-center justify-between border-b border-slate-800/80 overflow-hidden">
+            <div class="flex items-center gap-2 brand-title overflow-hidden">
+                <img src="/web/Logo_SAP.png" alt="Logo" class="h-7 w-7 object-contain flex-shrink-0"
+                    onerror="this.onerror=null; this.src='Logo_SAP.png';">
+                <div class="flex flex-col justify-center whitespace-nowrap">
+                    <h1 class="text-xs font-bold text-white tracking-wide leading-tight">SAP BoB</h1>
+                    <span class="text-[9px] font-mono text-slate-400 leading-none">v1.5.0</span>
+                </div>
+            </div>
+
+            <!-- Tombol Toggle (Ikon Lipat Ala Gemini) -->
+            <button id="btn-toggle-sidebar" type="button" onclick="toggleSidebarGemini()"
+                class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer flex-shrink-0"
+                title="Buka/Tutup Sidebar">
+                <!-- Ikon Panel Tutup (Default) -->
+                <svg id="icon-collapse" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="18" height="18" rx="3" stroke-width="2"></rect>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v18M14 9l-3 3 3 3">
+                    </path>
+                </svg>
+                <!-- Ikon Panel Buka (Saat Tertutup) -->
+                <svg id="icon-expand" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="18" height="18" rx="3" stroke-width="2"></rect>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v18M13 15l3-3-3-3">
+                    </path>
+                </svg>
+            </button>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto px-1.5 py-3  overflow-x-hidden">
+
+            <!-- Header Judul Modul -->
+            <div class="px-2 pb-1 text-[10px] font-bold text-grey uppercase tracking-wider sidebar-header-title">
+                Sistem Akuntansi & Pelaporan
+            </div>
+            <button type="button" onclick="bukaTabMenuMobile('dashboard', '📊 Dashboard', '/dashboard')"
+                class="menu-item w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded text-[12px] font-medium text-yellow-200 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer"
+                title="Dashboard">
+                <span class="text-base flex-shrink-0">📊</span>
+                <span class="sidebar-text whitespace-nowrap">Dashboard</span>
+            </button>
+
+            <div class="menu-group">
+                <button type="button" onclick="toggleSubmenu('sub-gl', this)"
+                    class="w-full flex items-center justify-between px-2.5 py-1.5 rounded text-slate-300 hover:bg-slate-600/60 font-semibold"
+                    title="General Ledger">
+                    <span class="flex items-center gap-2 text-emerald-400">
+                        <span>📓</span>
+                        <span class="sidebar-text">General Ledger</span>
+                    </span>
+                    <span class="arrow-icon text-[9px] font-mono text-slate-400">▶</span>
+                </button>
+                <div id="sub-gl" class="hidden pl-0 pr-1 py-1 space-y-0.5 border-l border-slate-800 ml-4 mt-0.5">
+                    <button type="button" onclick="bukaTabMenuMobile('gl', '📓 Input Jurnal', '/gl')"
+                        class="w-full text-left flex items-center gap-2 px-2 py-1 rounded text-[11px] text-slate-400 hover:text-white">
+                        <span>📝</span> <span class="sidebar-text">Input Jurnal</span>
+                    </button>
+                    <button type="button" onclick="bukaTabMenuMobile('posting', '✅ Posting Pending', '/posting')" class="w-full text-left flex items-center gap-2 px-2 py-1 rounded text-[11px] text-slate-400
+                    hover:text-white">
+                        <span>✅</span> <span class="sidebar-text">Posting Pending</span>
+                    </button>
+                    <button type="button" onclick="bukaTabMenuMobile('buku_besar', '📖 Buku Besar', '/buku_besar')"
+                        class="w-full text-left flex items-center gap-2 px-2 py-1 rounded text-[11px] text-slate-400 hover:text-white">
+                        <span>📖</span> <span class="sidebar-text">Buku Besar</span>
+                    </button>
+                    </button>
+                </div>
+            </div>
+            <div class="menu-group">
+                <button type="button" onclick="toggleSubmenu('sub-ar', this)"
+                    class="w-full flex items-center justify-between px-2.5 py-1.5 rounded text-slate-300 hover:text-white hover:bg-slate-600/60 font-semibold cursor-pointer"
+                    title="Accounts Receivable">
+                    <span class="flex items-center gap-2 text-blue-400">
+                        <span>💳</span>
+                        <span class="sidebar-text">Accounts Receivable</span>
+                    </span>
+                    <span class="arrow-icon text-[9px] font-mono text-slate-400">▶</span>
+                </button>
+                <div id="sub-ar" class="hidden pl-0 pr-1 py-1 space-y-0.5 border-l border-slate-800 ml-4 mt-0.5">
+                    <button type="button"
+                        onclick="bukaTabMenuMobile('customer_invoice', '📑 Faktur Penjualan', '/customer_invoice')"
+                        class="w-full text-left flex items-center gap-2 px-2 py-1 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100">
+                        <span>📑</span> <span class="sidebar-text">Input Faktur Penjualan</span>
+                    </button>
+                    <button type="button" onclick="bukaTabMenuMobile('daftar_ar', '📋 Daftar AR', '/daftar_ar')"
+                        class="w-full text-left flex items-center gap-2 px-2 py-1 rounded text-[11px] text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 ">
+                        <span>📋</span><span class="sidebar-text"> Daftar AR</span>
+                    </button>
+
+                    <button type="button"
+                        onclick="bukaTabMenuMobile('master_customer', '👥 Master Customer', '/master_customer')"
+                        class="w-full text-left flex items-center gap-2 px-2 py-1 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100">
+                        <span>👥</span> <span class="sidebar-text"> Master Customer</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="menu-group">
+                <button type="button" onclick="toggleSubmenu('sub-ap', this)"
+                    class="w-full flex items-center justify-between px-2.5 py-1.5 rounded text-slate-300 hover:text-white hover:bg-slate-600/60 transition-all font-semibold cursor-pointer"
+                    title="Accounts Payable">
+                    <span class="flex items-center gap-2 text-red-400">
+                        <span>💰</span>
+                        <span class="sidebar-text">Accounts Payable</span>
+                    </span>
+                    <span class="arrow-icon text-[9px] font-mono text-slate-400">▶</span>
+                </button>
+                <div id="sub-ap" class="hidden pl-0 pr-1 py-1 space-y-0.5 border-l border-slate-800 ml-4 mt-0.5">
+                    <button type="button" onclick="bukaTabMenuMobile('/vendor_bill', '🧾 Input AP', '/vendor_bill')"
+                        class="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 ">
+                        <span>🧾</span>
+                        <span class="sidebar-text">Input AP</span>
+                    </button>
+                    <button type="button" onclick="bukaTabMenu('daftar_ap', '📋 Daftar AP', '/daftar_ap')"
+                        class="w-full text-left flex items-center gap-2 px-2 py-1 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all">
+                        <span>📋</span> Daftar AP
+                    </button>
+                    <button type="button"
+                        onclick="bukaTabMenuMobile('payment_request', '📨 Pengajuan Pembayaran (RFP)', '/payment_request')"
+                        class="w-full text-left flex items-center gap-2 px-2 py-1 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all">
+                        <span>📨</span>
+                        <span class="sidebar-text">Pengajuan Pembayaran (RFP)</span>
+                    </button>
+                    <button type="button"
+                        onclick="bukaTabMenuMobile('vendor_payment', '💳 Pembayaran Vendor', '/vendor_payment')"
+                        class="w-full text-left flex items-center gap-2 px-2 py-1 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all ">
+                        <span>💳</span>
+                        <span class="sidebar-text">Pembayaran</span>
+                    </button>
+                    <button type="button"
+                        onclick="bukaTabMenuMobile('master_vendor', '🚚 Master Vendor', '/master_vendor')"
+                        class="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all">
+                        <span>🚚</span>
+                        <span class="sidebar-text">Master Vendor</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="menu-group">
+                <button type="button" onclick="toggleSubmenu('sub-inv', this)"
+                    class="menu-parent-btn w-full flex items-center justify-between px-2.5 py-1.5 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all font-semibold cursor-pointer"
+                    title="Inventory">
+                    <span class="flex items-center gap-2.5 text-purple-400">
+                        <span class="text-base flex-shrink-0">📦</span>
+                        <span class="sidebar-text whitespace-nowrap">Inventory</span>
+                    </span>
+                    <span
+                        class="arrow-icon text-[9px] font-mono text-slate-400 transition-transform duration-200">▶</span>
+                </button>
+                <div id="sub-inv" class="hidden pl-0 pr-1 py-1 space-y-0.5 border-l border-slate-800 ml-4 mt-0.5">
+                    <button type="button" onclick="bukaTabMenuMobile('inventory', '📦 Input Inventory', '/inventory')"
+                        class="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all indent-2">
+                        <span>📦</span> Input Inventory
+                    </button>
+                    <button type="button"
+                        onclick="bukaTabMenuMobile('daftar_inventory', '📋 Daftar Inventory', '/daftar_inventory')"
+                        class="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all indent-2">
+                        <span>📋</span> Daftar Inventory
+                    </button>
+                </div>
+            </div>
+            <div class="menu-group">
+                <button type="button" onclick="toggleSubmenu('sub-fixed-asset', this)"
+                    class="menu-parent-btn w-full flex items-center justify-between px-2.5 py-1.5 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all font-semibold cursor-pointer"
+                    title="General Ledger">
+                    <span class="flex items-center gap-2.5 text-yellow-400">
+                        <span class="text-base flex-shrink-0">🏗️</span>
+                        <span class="sidebar-text whitespace-nowrap">Fixed Asset</span>
+                    </span>
+                    <span
+                        class="arrow-icon text-[9px] font-mono text-slate-400 transition-transform duration-200">▶</span>
+                </button>
+                <div id="sub-fixed-asset"
+                    class="hidden pl-0 pr-1 py-1 space-y-0.5 border-l border-slate-800 ml-4 mt-0.5">
+                    <button type="button" onclick="bukaTabMenuMobile('fixed_asset', '🏗️ Fixed Asset', '/fixed_asset')"
+                        class="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all indent-2">
+                        <span>🏗️</span> Fixed Asset
+                    </button>
+                    <button type="button"
+                        onclick="bukaTabMenuMobile('daftar_fixed_asset', '📋 Daftar Fixed Asset', '/daftar_fixed_asset')"
+                        class="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all indent-2">
+                        <span>📋</span> Daftar Fixed Asset
+                    </button>
+                </div>
+            </div>
+            <div class="menu-group">
+                <button type="button" onclick="toggleSubmenu('sub-laporan', this)"
+                    class="menu-parent-btn w-full flex items-center justify-between px-2.5 py-1.5 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all font-semibold cursor-pointer"
+                    title="Laporan Keuangan">
+                    <span class="flex items-center gap-2 text-blue-200">
+                        <span class="text-base flex-shrink-0">📊</span>
+                        <span class="sidebar-text whitespace-nowrap">Laporan Keuangan</span>
+                    </span>
+                    <span
+                        class="arrow-icon text-[9px] font-mono text-slate-400 transition-transform duration-200">▶</span>
+                </button>
+                <div id="sub-laporan" class="hidden pl-0 pr-1 py-1 space-y-0.5 border-l border-slate-800 ml-4 mt-0.5">
+                    <button type="button"
+                        onclick="bukaTabMenuMobile('trial_balance', '📋 Neraca Saldo', '/trial_balance')"
+                        class="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all indent-2">
+                        <span>📋</span> Neraca Saldo
+                    </button>
+                    <button type="button"
+                        onclick="bukaTabMenuMobile('balance_sheet', '⚖️ Neraca (Balance Sheet)', '/balance_sheet')"
+                        class="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all indent-2">
+                        <span>⚖️</span> Neraca
+                    </button>
+                    <button type="button"
+                        onclick="bukaTabMenuMobile('profit_loss', '📈 Laba Rugi (P&L)', '/profit_loss')"
+                        class="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all indent-2">
+                        <span>📈</span> Laba Rugi
+                    </button>
+                    <button type="button"
+                        onclick="bukaTabMenuMobile('cash_flow', '💰 Cash Flow (Arus Kas)', '/cash_flow')"
+                        class="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all indent-2">
+                        <span>💰</span> Cash Flow (Arus Kas)
+                    </button>
+                </div>
+                <div class="menu-group">
+                    <button type="button" onclick="toggleSubmenu('sub-utility', this)"
+                        class="menu-parent-btn w-full flex items-center justify-between px-2.5 py-1.5 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all font-semibold cursor-pointer"
+                        title="General Ledger">
+                        <span class="flex items-center gap-2 text-red-600">
+                            <span class="text-base flex-shrink-0">🛠️</span>
+                            <span class="sidebar-text whitespace-nowrap">Utility</span>
+                        </span>
+                        <span
+                            class="arrow-icon text-[9px] font-mono text-slate-400 transition-transform duration-200">▶</span>
+                    </button>
+                    <div id="sub-utility"
+                        class="hidden pl-0 pr-1 py-1 space-y-0.5 border-l border-slate-800 ml-4 mt-0.5">
+                        <button type="button"
+                            onclick="bukaTabMenuMobile('backup_restore', '💾 Backup & Restore', '/backup_restore')"
+                            class="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all indent-2">
+                            <span>💾</span> Backup & Restore
+                        </button>
+                        <button type="button"
+                            onclick="bukaTabMenuMobile('log_activity', '📜 Log Aktivitas', '/log_activity')"
+                            class="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all indent-2">
+                            <span>📜</span> Log Aktivitas
+                        </button>
+                        <button type="button"
+                            onclick="bukaTabMenuMobile('setup_user', '⚙️ User & Akses', '/setup_user')"
+                            id="menu-setup-user"
+                            class="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all indent-2">
+                            <span>⚙️</span> User & Hak Akses
+                        </button>
+                        <button type="button" onclick="bukaTabMenuMobile('setup_coa', '🗂️ Master COA', '/setup_coa')"
+                            class="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all indent-2">
+                            <span>🗂️</span> Chart of Account
+                        </button>
+                        <button type="button" onclick="bukaTabMenuMobile('setup_org', '🏢Cabang & Dept', '/setup_org')"
+                            class="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all indent-2">
+                            <span>🏢</span> Cabang & Departemen
+                        </button>
+                        <button type="button"
+                            onclick="bukaTabMenuMobile('setup_voucher', '🎟️Kode Voucher', '/setup_voucher')"
+                            class="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all indent-2">
+                            <span>🎟️</span> Kode Voucher
+                        </button>
+                        <button type="button"
+                            onclick="bukaTabMenuMobile('setup_perusahaan', '🏛️ Profil Perusahaan', '/setup_perusahaan')"
+                            class="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all indent-2">
+                            <span>🏛️</span> Profil Perusahaan
+                        </button>
+                    </div>
+                </div>
+        </nav>
+
+        <div class="p-2 bg-slate-950/60 border-t border-slate-800/80 space-y-1.5">
+            <button type="button" onclick="bukaModalGantiPassword()"
+                class="menu-item w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded text-slate-400 hover:text-white hover:bg-purple-800 text-[11px] transition-all cursor-pointer justify-center gap-1.5"
+                title="Ganti Password">
+                <span class="text-base flex-shrink-0">🔑</span>
+                <span class="sidebar-text whitespace-nowrap">Ganti Password</span>
+            </button>
+            <button onclick="localStorage.clear(); window.location.href='/';"
+                class="w-full bg-slate-800 hover:bg-rose-600/80 text-slate-300 hover:text-white py-1.5 px-2 rounded text-[10px] font-medium transition-all flex items-center justify-center gap-1.5"
+                title="Logout">
+                <span class="text-base flex-shrink-0">🚪</span>
+                <span class="sidebar-text whitespace-nowrap">Logout</span>
+            </button>
+        </div>
+    </aside>
+    <div id="sidebar-backdrop" onclick="toggleSidebarMobile()" class="fixed inset-0 bg-black/60 z-40 hidden md:hidden">
+    </div>
+
+    <!-- AREA KERJA WINDOWS -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-100">
+        <!-- BAR TAB HORIZONTAL -->
+        <div id="tab-bar"
+            class="h-9 bg-slate-200 border-b border-slate-300 flex items-end px-2 gap-1 overflow-x-auto flex-shrink-0 select-none">
+        </div>
+        <button type="button" onclick="toggleSidebarMobile()"
+            class="md:hidden p-2 text-slate-600 hover:text-slate-900 focus:outline-none" title="Buka Menu">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
+                </path>
+            </svg>
+        </button>
+        <!-- CONTAINER FRAME KONTEN -->
+        <div id="workspace-frames" class="flex-1 w-full h-full relative bg-white">
+            <div id="empty-state"
+                class="flex flex-col items-center justify-center h-full text-slate-400 text-xs italic">
+                <span class="text-3xl mb-2">📂</span>
+                Tidak ada menu yang terbuka. Silakan pilih menu di sidebar.
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function toggleSidebarGemini() {
+            const sidebar = document.getElementById('main-sidebar');
+            const iconCollapse = document.getElementById('icon-collapse');
+            const iconExpand = document.getElementById('icon-expand');
+
+            const isCurrentlyCollapsed = sidebar.classList.contains('sidebar-collapsed');
+
+            if (isCurrentlyCollapsed) {
+                // Buka kembali ke mode normal
+                sidebar.classList.remove('sidebar-collapsed');
+                sidebar.classList.add('sidebar-expanded');
+                iconCollapse.classList.remove('hidden');
+                iconExpand.classList.add('hidden');
+                localStorage.setItem('gemini_sidebar_state', 'expanded');
+            } else {
+                // Ciutkan ke mode ikon saja
+                sidebar.classList.remove('sidebar-expanded');
+                sidebar.classList.add('sidebar-collapsed');
+                iconCollapse.classList.add('hidden');
+                iconExpand.classList.remove('hidden');
+                localStorage.setItem('gemini_sidebar_state', 'collapsed');
+            }
+        }
+
+        // Pulihkan kondisi terakhir saat halaman dimuat ulang
+        document.addEventListener("DOMContentLoaded", () => {
+            if (localStorage.getItem('gemini_sidebar_state') === 'collapsed') {
+                const sidebar = document.getElementById('main-sidebar');
+                const iconCollapse = document.getElementById('icon-collapse');
+                const iconExpand = document.getElementById('icon-expand');
+                if (sidebar) {
+                    sidebar.classList.remove('sidebar-expanded');
+                    sidebar.classList.add('sidebar-collapsed');
+                    iconCollapse?.classList.add('hidden');
+                    iconExpand?.classList.remove('hidden');
+                }
+            }
+        });
+
+        function handleMenuClick(submenuId, btn) {
+            const sidebar = document.getElementById('main-sidebar');
+            if (sidebar.classList.contains('sidebar-collapsed')) {
+                toggleSidebarGemini();
+            }
+            toggleSubmenu(submenuId, btn);
+        }
+
+        // Opsional: Pulihkan posisi terakhir saat halaman dimuat
+        document.addEventListener("DOMContentLoaded", () => {
+            if (localStorage.getItem('sidebar_closed') === 'true') {
+                document.getElementById('main-sidebar')?.classList.add('-ml-48');
+            }
+        });
+
+        function toggleSubmenu(id, btn) {
+            const targetSubmenu = document.getElementById(id);
+            const targetArrow = btn ? btn.querySelector('.arrow-icon') : null;
+            if (!targetSubmenu) return;
+
+            // Cek apakah menu yang diklik saat ini sedang terbuka
+            const isCurrentlyOpen = !targetSubmenu.classList.contains('hidden');
+
+            // 1. TUTUP SEMUA SUBMENU YANG SEDANG TERBUKA
+            // Mencari semua kontainer submenu yang berawalan 'sub-'
+            const allSubmenus = document.querySelectorAll('[id^="sub-"]');
+            allSubmenus.forEach(sub => {
+                sub.classList.add('hidden');
+            });
+
+            // 2. KEMBALIKAN SEMUA IKON PANAH KE POSISI SEMULA (▶)
+            const allArrows = document.querySelectorAll('.arrow-icon');
+            allArrows.forEach(arrow => {
+                arrow.innerText = '▶';
+            });
+
+            // 3. JIKA SEBELUMNYA TERTUTUP, BUKA HANYA MENU YANG DIKLIK INI
+            if (!isCurrentlyOpen) {
+                targetSubmenu.classList.remove('hidden');
+                if (targetArrow) targetArrow.innerText = '▼';
+            }
+            // Jika sebelumnya memang sudah terbuka, langkah 1 di atas otomatis melipatnya kembali
+        }
+
+        // Objek penyimpan status tab yang sedang terbuka
+        const openedTabs = {};
+
+        function bukaTabMenu(menuId, title, url) {
+            document.getElementById('empty-state')?.classList.add('hidden');
+
+            // 1. CEK APAKAH TAB SUDAH TERBUKA
+            // Jika sudah ada, jangan buat baru dan jangan reload, cukup aktifkan tabnya!
+            if (openedTabs[menuId]) {
+                pindahTab(menuId);
+                return;
+            }
+
+            // 2. JIKA BELUM ADA, BUAT TAB BARU DI ATAS
+            const tabBar = document.getElementById('tab-bar');
+            const tabBtn = document.createElement('div');
+            tabBtn.id = `tab-btn-${menuId}`;
+            tabBtn.className = "flex items-center gap-2 px-3 py-1.5 text-[11px] bg-slate-300 text-slate-700 rounded-t border-t border-x border-slate-300 cursor-pointer transition-all hover:bg-slate-200";
+            tabBtn.innerHTML = `
+                <span onclick="pindahTab('${menuId}')" class="font-medium whitespace-nowrap">${title}</span>
+                <span onclick="tutupTab('${menuId}', event)" class="hover:bg-rose-500 hover:text-white rounded px-1 text-[11px] font-bold text-slate-500 transition-colors" title="Tutup Window">✕</span>
+            `;
+            tabBar.appendChild(tabBtn);
+
+            // 3. BUAT CONTAINER HALAMAN (IFRAME)
+            const container = document.getElementById('workspace-frames');
+            const frame = document.createElement('iframe');
+            frame.id = `frame-${menuId}`;
+            frame.src = url + (url.includes('?') ? '&' : '?') + '_v=' + new Date().getTime();
+            frame.className = "w-full h-full border-none hidden";
+            frame.onload = function () {
+                try {
+                    const innerDoc = frame.contentDocument || frame.contentWindow.document;
+                    if (innerDoc) {
+                        const style = innerDoc.createElement('style');
+                        style.innerHTML = `
+                            aside, body > nav, body > div > aside, [id="sidebar"] { 
+                                display: none !important; 
+                                width: 0 !important; 
+                                min-width: 0 !important; 
+                            }
+                            #modal-review {
+                                display: flex !important; /* Pastikan modal tidak tersembunyi jika class hidden dicopot */
+                            }
+                            #modal-review.hidden {
+                                display: none !important;
+                            }
+                            main, body > div:last-child { 
+                                width: 100% !important; 
+                                flex: 1 1 100% !important; 
+                                margin: 0 !important; 
+                            }
+                        `;
+                        innerDoc.head.appendChild(style);
+                    }
+                } catch (err) {
+                    console.log("CORS check pass:", err);
+                }
+            };
+            container.appendChild(frame);
+
+            // Simpan referensi tab
+            openedTabs[menuId] = { title, url };
+
+            // Aktifkan tab yang baru dibuat
+            pindahTab(menuId);
+        }
+
+        function pindahTab(activeId) {
+            Object.keys(openedTabs).forEach(id => {
+                const btn = document.getElementById(`tab-btn-${id}`);
+                const frame = document.getElementById(`frame-${id}`);
+
+                if (!btn || !frame) return;
+
+                if (id === activeId) {
+                    // Gaya tab aktif (putih terang dengan border atas biru)
+                    btn.className = "flex items-center gap-2 px-3 py-1.5 text-[11px] bg-white text-blue-700 font-bold rounded-t border-t-2 border-t-blue-600 border-x border-slate-300 cursor-pointer shadow-xs";
+                    frame.classList.remove('hidden');
+                } else {
+                    // Gaya tab tidak aktif (abu-abu)
+                    btn.className = "flex items-center gap-2 px-3 py-1.5 text-[11px] bg-slate-300 text-slate-600 rounded-t border-t border-x border-slate-400/30 cursor-pointer hover:bg-slate-200/80";
+                    frame.classList.add('hidden');
+                }
+            });
+        }
+
+        function tutupTab(menuId, event) {
+            if (event) event.stopPropagation();
+
+            const frame = document.getElementById(`frame-${menuId}`);
+
+            // -------------------------------------------------------------
+            // CEK DATA DRAF SECARA LANGSUNG DARI DOKUMEN IFRAME
+            // -------------------------------------------------------------
+            if (frame) {
+                try {
+                    const innerDoc = frame.contentDocument || frame.contentWindow?.document;
+
+                    if (innerDoc) {
+                        let adaDataBelumDisimpan = false;
+
+                        // 1. Cek semua input teks & angka di dalam form/tabel (kecuali tanggal default & cabang)
+                        const inputs = innerDoc.querySelectorAll('input, select, textarea');
+                        for (let el of inputs) {
+                            if (el.type === 'hidden' || el.type === 'date' || el.readOnly || el.disabled) continue;
+
+                            const val = (el.value || '').trim();
+                            // Jika ada input teks/keterangan yang terisi
+                            if (el.type === 'text' || el.tagName.toLowerCase() === 'textarea') {
+                                if (val !== '' && !val.includes('01-') && !val.includes('HO') && val !== '0') {
+                                    adaDataBelumDisimpan = true;
+                                    break;
+                                }
+                            }
+                            // Jika ada input nominal angka > 0
+                            if (el.type === 'number' && parseFloat(val) > 0) {
+                                adaDataBelumDisimpan = true;
+                                break;
+                            }
+                        }
+
+                        // 2. Cek baris tabel transaksi jurnal (jika ada lebih dari 1 baris/ada input akun terisi)
+                        const rowJurnals = innerDoc.querySelectorAll('#body-jurnal tr, #tabel-jurnal-body tr');
+                        if (rowJurnals.length > 0) {
+                            for (let tr of rowJurnals) {
+                                const selects = tr.querySelectorAll('select');
+                                for (let s of selects) {
+                                    if (s.value && s.value !== '' && s.value !== '-') {
+                                        adaDataBelumDisimpan = true;
+                                        break;
+                                    }
+                                }
+                                if (adaDataBelumDisimpan) break;
+                            }
+                        }
+
+                        // 3. Jika terdeteksi ada data yang diketik/dipilih, MUNCULKAN PERINGATAN
+                        if (adaDataBelumDisimpan) {
+                            const title = openedTabs[menuId]?.title || 'ini';
+                            const konfirmasi = window.confirm(
+                                `⚠️ PERINGATAN:\n\n` +
+                                `Masih ada data yang sedang diinput pada tab "${title}"!\n` +
+                                `Jika tab ditutup sekarang, data yang belum disimpan akan hilang.\n\n` +
+                                `Yakin ingin menutup tab ini?`
+                            );
+
+                            if (!konfirmasi) {
+                                return; // BATALKAN PENUTUPAN TAB
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.warn("Pengecekan tab diabaikan:", err);
+                }
+            }
+
+            // Eksekusi penutupan jika tidak ada data atau user menyetujui konfirmasi
+            const tabBtn = document.getElementById(`tab-btn-${menuId}`);
+            if (tabBtn) tabBtn.remove();
+            if (frame) frame.remove();
+
+            delete openedTabs[menuId];
+
+            const remainingKeys = Object.keys(openedTabs);
+            if (remainingKeys.length > 0) {
+                pindahTab(remainingKeys[remainingKeys.length - 1]);
+            } else {
+                document.getElementById('empty-state')?.classList.remove('hidden');
+            }
+        }
+
+        function toggleSidebarMobile() {
+            const sidebar = document.getElementById('main-sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            if (!sidebar || !backdrop) return;
+
+            const isClosed = sidebar.classList.contains('-translate-x-full');
+
+            if (isClosed) {
+                // Buka drawer di ponsel
+                sidebar.classList.remove('-translate-x-full');
+                backdrop.classList.remove('hidden');
+            } else {
+                // Tutup drawer di ponsel
+                sidebar.classList.add('-translate-x-full');
+                backdrop.classList.add('hidden');
+            }
+        }
+
+        function bukaTabMenuMobile(menuId, title, url) {
+            // Jalankan fungsi asli pembuka tab di workspace
+            if (typeof bukaTabMenu === 'function') {
+                bukaTabMenu(menuId, title, url);
+            }
+
+            // Jika sedang di layar HP (< 768px), tutup drawer sidebar setelah menu dipilih
+            if (window.innerWidth < 768) {
+                const sidebar = document.getElementById('main-sidebar');
+                const backdrop = document.getElementById('sidebar-backdrop');
+                if (sidebar && !sidebar.classList.contains('-translate-x-full')) {
+                    sidebar.classList.add('-translate-x-full');
+                    backdrop?.classList.add('hidden');
+                }
+            }
+        }
+
+
+
+        // PERTAMA KALI DIBUKA: OTOMATIS BUKA DASHBOARD SEBAGAI TAB UTAMA
+        document.addEventListener("DOMContentLoaded", () => {
+            bukaTabMenu('dashboard', '📊 Dashboard', '/dashboard');
+        });
+
+        window.bukaModalGantiPassword = function () {
+            const modal = document.getElementById('modal-ganti-password');
+            const form = document.getElementById('formGantiPassword');
+            if (!modal) {
+                alert("⚠️ Modal ganti password tidak ditemukan pada halaman ini.");
+                return;
+            }
+            if (form) form.reset();
+            modal.classList.remove('hidden');
+        };
+
+        window.tutupModalGantiPassword = function () {
+            const modal = document.getElementById('modal-ganti-password');
+            if (modal) modal.classList.add('hidden');
+        };
+    </script>
+    <!-- MODAL GANTI PASSWORD MANDIRI -->
+    <div id="modal-ganti-password"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs hidden">
+        <div class="bg-white rounded-lg shadow-xl border border-slate-200 w-full max-w-sm overflow-hidden mx-4">
+            <div class="bg-slate-800 px-4 py-2.5 flex justify-between items-center text-white">
+                <h3 class="font-semibold text-xs flex items-center gap-1.5">🔑 Ganti Password Sendiri</h3>
+                <button type="button" onclick="tutupModalGantiPassword()"
+                    class="text-slate-400 hover:text-white text-base leading-none">&times;</button>
+            </div>
+            <form id="formGantiPassword" onsubmit="eksekusiGantiPassword(event)" class="p-4 space-y-2.5">
+                <div>
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Password Saat Ini</label>
+                    <input type="password" id="pass_lama" required placeholder="••••••••"
+                        class="w-full bg-slate-50 border border-slate-200 rounded px-2.5 py-1.5 text-xs outline-none focus:border-indigo-500 focus:bg-white">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Password Baru</label>
+                    <input type="password" id="pass_baru" required placeholder="••••••••"
+                        class="w-full bg-slate-50 border border-slate-200 rounded px-2.5 py-1.5 text-xs outline-none focus:border-indigo-500 focus:bg-white">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Konfirmasi Password
+                        Baru</label>
+                    <input type="password" id="pass_baru_konfirm" required placeholder="••••••••"
+                        class="w-full bg-slate-50 border border-slate-200 rounded px-2.5 py-1.5 text-xs outline-none focus:border-indigo-500 focus:bg-white">
+                </div>
+                <div class="pt-2 flex justify-end gap-1.5 border-t border-slate-100">
+                    <button type="button" onclick="tutupModalGantiPassword()"
+                        class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1 rounded text-[11px] font-medium border border-slate-300">Batal</button>
+                    <button type="submit" id="btn-simpan-pass"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1 rounded text-[11px] font-bold shadow-xs">Simpan
+                        Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</body>
+
+</html>

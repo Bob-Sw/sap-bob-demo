@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ringkasan Eksekutif - SAP Web</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-50 text-slate-800 p-8">
+    <div class="max-w-5xl mx-auto bg-white p-6 rounded-lg shadow border border-slate-200">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900">Ringkasan Eksekutif</h1>
+                <p class="text-sm text-slate-500">Laporan Neraca & Laba Rugi Konsolidasi per Kelompok</p>
+            </div>
+            <div class="flex gap-2">
+                <input type="date" id="per_tanggal" class="border rounded px-3 py-1.5 text-sm">
+                <button onclick="muatLaporanEksekutif()"
+                    class="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-bold">Tampilkan</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- NERACA RINGKAS -->
+            <div>
+                <h2 class="font-bold text-lg border-b-2 border-slate-800 pb-2 mb-4">POSISI KEUANGAN (NERACA)</h2>
+
+                <h3 class="font-bold text-blue-800 text-sm mb-2">ASET</h3>
+                <div id="aset-container" class="space-y-1 mb-4 text-sm"></div>
+                <div class="flex justify-between font-bold border-t border-slate-300 pt-2 mb-6">
+                    <span>Total Aset</span><span id="tot-aset" class="text-blue-700">Rp 0</span>
+                </div>
+
+                <h3 class="font-bold text-amber-800 text-sm mb-2">KEWAJIBAN & EKUITAS</h3>
+                <div id="pasiva-container" class="space-y-1 mb-4 text-sm"></div>
+                <div class="flex justify-between font-bold border-t border-slate-300 pt-2">
+                    <span>Total Kewajiban & Ekuitas</span><span id="tot-pasiva" class="text-amber-700">Rp 0</span>
+                </div>
+            </div>
+
+            <!-- LABA RUGI RINGKAS -->
+            <div>
+                <h2 class="font-bold text-lg border-b-2 border-slate-800 pb-2 mb-4">KINERJA (LABA RUGI)</h2>
+
+                <h3 class="font-bold text-emerald-800 text-sm mb-2">PENDAPATAN</h3>
+                <div id="pendapatan-container" class="space-y-1 mb-4 text-sm"></div>
+                <div class="flex justify-between font-bold border-t border-slate-300 pt-2 mb-6">
+                    <span>Total Pendapatan</span><span id="tot-pend" class="text-emerald-700">Rp 0</span>
+                </div>
+
+                <h3 class="font-bold text-rose-800 text-sm mb-2">BEBAN & BIAYA</h3>
+                <div id="beban-container" class="space-y-1 mb-4 text-sm"></div>
+                <div class="flex justify-between font-bold border-t border-slate-300 pt-2 mb-6">
+                    <span>Total Beban</span><span id="tot-beban" class="text-rose-700">Rp 0</span>
+                </div>
+
+                <div class="bg-slate-100 p-4 rounded border flex justify-between items-center font-bold text-lg">
+                    <span>LABA BERSIH</span><span id="laba-bersih">Rp 0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('per_tanggal').valueAsDate = new Date();
+        const formatRp = (angka) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(angka);
+
+        async function muatLaporanEksekutif() {
+            const tgl = document.getElementById('per_tanggal').value;
+            if (!tgl) return;
+
+            // 1. Fetch Neraca Grouped
+            const resNeraca = await fetch(`/api/balance_sheet_grouped?per_tanggal=${tgl}`);
+            const dataNeraca = await resNeraca.json();
+
+            // 2. Fetch P&L Grouped (Set awal tahun s/d tanggal dipilih)
+            const thn = tgl.split('-')[0];
+            const resPL = await fetch(`/api/profit_loss_grouped_summary?tgl_mulai=${thn}-01-01&tgl_selesai=${tgl}`);
+            const dataPL = await resPL.json();
+
+            // Render Aset
+            document.getElementById('aset-container').innerHTML = dataNeraca.aset.map(a =>
+                `<div class="flex justify-between border-b border-slate-100 pb-1"><span>${a.kelompok}</span><span>${formatRp(a.saldo)}</span></div>`
+            ).join('');
+            document.getElementById('tot-aset').innerText = formatRp(dataNeraca.total_aset);
+
+            // Render Kewajiban & Ekuitas
+            const gabunganPasiva = [...dataNeraca.kewajiban, ...dataNeraca.ekuitas];
+            document.getElementById('pasiva-container').innerHTML = gabunganPasiva.map(p =>
+                `<div class="flex justify-between border-b border-slate-100 pb-1"><span>${p.kelompok}</span><span>${formatRp(p.saldo)}</span></div>`
+            ).join('');
+            document.getElementById('tot-pasiva').innerText = formatRp(dataNeraca.total_kewajiban + dataNeraca.total_ekuitas);
+
+            // Render Laba Rugi
+            document.getElementById('pendapatan-container').innerHTML = dataPL.pendapatan.map(p =>
+                `<div class="flex justify-between border-b border-slate-100 pb-1"><span>${p.kelompok}</span><span>${formatRp(p.saldo)}</span></div>`
+            ).join('');
+            document.getElementById('tot-pend').innerText = formatRp(dataPL.total_pendapatan);
+
+            document.getElementById('beban-container').innerHTML = dataPL.beban.map(b =>
+                `<div class="flex justify-between border-b border-slate-100 pb-1"><span>${b.kelompok}</span><span>${formatRp(b.saldo)}</span></div>`
+            ).join('');
+            document.getElementById('tot-beban').innerText = formatRp(dataPL.total_beban);
+
+            document.getElementById('laba-bersih').innerText = formatRp(dataPL.laba_bersih);
+            document.getElementById('laba-bersih').className = dataPL.laba_bersih >= 0 ? "text-emerald-700" : "text-rose-700";
+        }
+    </script>
+</body>
+
+</html>

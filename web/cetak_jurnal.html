@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cetak Bukti Jurnal</title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; margin: 0; padding: 20px; font-size: 11pt; background: #f8fafc; }
+        .cetak-area { max-width: 850px; margin: 0 auto; padding: 25px; border: 1px solid #cbd5e1; background: #fff; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        .header-table { width: 100%; border-bottom: 2px solid #000; margin-bottom: 15px; padding-bottom: 8px; }
+        .header-table td { vertical-align: bottom; }
+        .title { font-size: 16pt; font-weight: bold; text-align: right; text-transform: uppercase; }
+        .info-table { width: 100%; margin-bottom: 15px; font-size: 10pt; }
+        .info-table td { padding: 3px 0; vertical-align: top; }
+        .info-label { width: 120px; font-weight: bold; }
+        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 10pt; }
+        .items-table th, .items-table td { border: 1px solid #000; padding: 6px 8px; }
+        .items-table th { background-color: #f1f5f9; text-align: center; font-weight: bold; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .total-row { font-weight: bold; background-color: #f8fafc; }
+        .signature-table { width: 100%; margin-top: 25px; text-align: center; font-size: 9.5pt; }
+        .signature-table td { width: 33.33%; vertical-align: top; }
+        .sig-box { border-bottom: 1px solid #000; height: 60px; margin: 10px 25px; }
+        .sig-title { font-weight: bold; }
+        .btn-print { display: block; width: 160px; margin: 0 auto 15px auto; padding: 8px 12px; text-align: center; background: #4f46e5; color: white; text-decoration: none; font-weight: bold; border-radius: 6px; cursor: pointer; border: none; }
+        .btn-print:hover { background: #4338ca; }
+
+        @media print {
+            body { padding: 0; background: #fff; }
+            .cetak-area { border: none; padding: 0; margin: 0; max-width: 100%; box-shadow: none; }
+            .btn-print, .no-print { display: none !important; }
+            @page { size: A5 landscape; margin: 10mm; }
+        }
+    </style>
+</head>
+<body>
+    
+    <button onclick="window.print()" class="btn-print no-print">🖨️ Cetak Voucher</button>
+
+    <div class="cetak-area" id="voucher-content">
+        <h3 style="text-align:center; color:#64748b;">Memuat data jurnal...</h3>
+    </div>
+
+    <script>
+        const formatRp = (angka) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(angka || 0);
+        const urlParams = new URLSearchParams(window.location.search);
+        const noRef = urlParams.get('ref');
+
+        if (!noRef) {
+            document.getElementById('voucher-content').innerHTML = "<h3 style='color:#e11d48; text-align:center;'>Nomor Referensi tidak ditemukan pada URL!</h3>";
+        } else {
+            fetch(`/api/jurnal/cetak/${encodeURIComponent(noRef)}`)
+                .then(async res => {
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail || "Gagal memuat data");
+                    return data;
+                })
+                .then(data => {
+                    renderVoucher(data.header, data.detail);
+                })
+                .catch(err => {
+                    document.getElementById('voucher-content').innerHTML = `<h3 style='color:#e11d48; text-align:center;'>Gagal: ${err.message}</h3>`;
+                });
+        }
+
+        function renderVoucher(head, detail) {
+            let barisHTML = '';
+            detail.forEach(d => {
+                barisHTML += `
+                    <tr>
+                        <td class="text-center font-mono">${d.kode_akun}</td>
+                        <td>${d.nama_akun}</td>
+                        <td>${d.keterangan || '-'}</td>
+                        <td class="text-right font-mono">${formatRp(d.debit)}</td>
+                        <td class="text-right font-mono">${formatRp(d.kredit)}</td>
+                    </tr>
+                `;
+            });
+
+            const html = `
+                <table class="header-table">
+                    <tr>
+                        <td>
+                            <h2 style="margin:0; font-size:14pt;">PT. SAP BoB Nusantara</h2>
+                            <div style="font-size: 9pt; color:#64748b;">Sistem Akuntansi Enterprise</div>
+                        </td>
+                        <td class="title">BUKTI JURNAL</td>
+                    </tr>
+                </table>
+
+                <table class="info-table">
+                    <tr>
+                        <td class="info-label">No. Referensi</td>
+                        <td>: <strong>${head.no_referensi}</strong></td>
+                        <td class="info-label">Tanggal</td>
+                        <td>: ${head.tanggal}</td>
+                    </tr>
+                    <tr>
+                        <td class="info-label">Cabang / Dept</td>
+                        <td>: ${head.kode_cabang} / ${head.kode_departemen}</td>
+                        <td class="info-label">Status Dokumen</td>
+                        <td>: <strong>${head.status.toUpperCase()}</strong></td>
+                    </tr>
+                </table>
+
+                <table class="items-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 15%">Kode Akun</th>
+                            <th style="width: 32%">Nama Akun</th>
+                            <th style="width: 25%">Keterangan</th>
+                            <th style="width: 14%">Debit (Rp)</th>
+                            <th style="width: 14%">Kredit (Rp)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${barisHTML}
+                        <tr class="total-row">
+                            <td colspan="3" class="text-right">T O T A L</td>
+                            <td class="text-right font-mono">${formatRp(head.total_debit)}</td>
+                            <td class="text-right font-mono">${formatRp(head.total_kredit)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <table class="signature-table">
+                    <tr>
+                        <td>
+                            <div class="sig-title">Disiapkan Oleh (Maker)</div>
+                            <div class="sig-box"></div>
+                            <div>( ${head.pembuat || 'Staff Input'} )</div>
+                        </td>
+                        <td>
+                            <div class="sig-title">Diperiksa Oleh</div>
+                            <div class="sig-box"></div>
+                            <div>( Supervisor Finance )</div>
+                        </td>
+                        <td>
+                            <div class="sig-title">Disetujui Oleh (Approver)</div>
+                            <div class="sig-box"></div>
+                            <div>( Pimpinan Cabang / HO )</div>
+                        </td>
+                    </tr>
+                </table>
+            `;
+            document.getElementById('voucher-content').innerHTML = html;
+        }
+    </script>
+</body>
+</html>

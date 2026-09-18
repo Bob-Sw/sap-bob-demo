@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faktur Penjualan (Customer Invoice) - SAP BoB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tom Select -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
+    <script src="/role_akses.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .ts-control {
+            height: 28px !important;
+            min-height: 28px !important;
+            padding: 2px 6px !important;
+            display: flex !important;
+            align-items: center !important;
+            font-size: 11px !important;
+            border-radius: 0.25rem !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        .ts-dropdown {
+            font-size: 11px !important;
+            z-index: 50 !important;
+        }
+    </style>
+</head>
+
+<body class="h-full flex overflow-hidden text-slate-700 text-xs">
+
+    <!-- SIDEBAR -->
+    <aside
+        class="w-48 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800 shadow-xl z-20">
+        <div class="h-12 px-3 bg-slate-950/80 flex items-center gap-2 border-b border-slate-800/80">
+            <span class="text-xl">🏢</span>
+            <h1 class="text-xs font-bold text-white tracking-wide">SAP BoB</h1>
+        </div>
+        <nav class="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
+            <div class="px-2 pb-1.5 text-[9px] font-semibold text-blue-400 uppercase tracking-wider">Modul Piutang (AR)
+            </div>
+            <a href="/master_customer"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>👥</span>
+                Master Customer</a>
+            <a href="/customer_invoice"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-semibold text-white bg-blue-600 shadow-sm transition-all mt-0.5"><span>📑</span>
+                Faktur Penjualan</a>
+
+            <div class="pt-3 border-t border-slate-800/80 mt-2">
+                <div class="px-2 pb-1.5 text-[9px] font-semibold text-slate-500 uppercase tracking-wider">Modul
+                    Akuntansi</div>
+                <a href="/dashboard"
+                    class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>📊</span>
+                    Dashboard</a>
+                <a href="/posting"
+                    class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>✅</span>
+                    Posting Pending</a>
+                <a href="/buku_besar"
+                    class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>📖</span>
+                    Buku Besar</a>
+            </div>
+        </nav>
+        <div class="p-2 bg-slate-950/60 border-t border-slate-800/80">
+            <button onclick="window.location.href='/dashboard'"
+                class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 py-1.5 px-2 rounded text-[10px]">Kembali</button>
+        </div>
+    </aside>
+
+    <!-- MAIN AREA -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-100/70">
+        <header
+            class="h-10 bg-white border-b border-slate-200 px-4 flex items-center justify-between shadow-xs z-10 flex-shrink-0">
+            <div class="flex items-center gap-1.5 text-[11px]">
+                <span class="text-slate-400">Piutang Usaha (AR)</span> <span class="text-slate-300">/</span>
+                <h2 class="font-semibold text-slate-800">Entri Faktur Penjualan (Customer Invoice)</h2>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="/daftar_ar" class="text-slate-600 hover:text-blue-600 font-semibold text-[11px] flex items-center gap-1">
+                    <span>📑</span> Buka Daftar Faktur
+                </a>
+                <button type="button" onclick="resetFormInvoice()"
+                    class="text-blue-600 hover:underline text-[11px] font-semibold">➕ Buat Faktur Baru</button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-3 space-y-3">
+            <!-- FORM ENTRINYA -->
+            <div class="bg-white rounded border border-slate-200 shadow-sm p-3 border-t-4 border-t-blue-600">
+                <form id="formInvoice" onsubmit="simpanInvoice(event)">
+
+                    <!-- BARIS 1: INFORMASI HEADER (DEPARTEMEN DIHAPUS, KETERANGAN DIPERLEBAR) -->
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-2.5 pb-2.5 border-b border-slate-100">
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Voucher & No. Invoice
+                                <span class="text-rose-500">*</span></label>
+                            <div class="flex gap-1">
+                                <select id="kode_voucher" onchange="generateSequentialInvNo()"
+                                    class="w-20 bg-slate-50 border border-slate-200 rounded px-1 py-1 text-[11px] font-bold">
+                                    <option value="AR">AR</option>
+                                    <option value="INV">INV</option>
+                                    <option value="BKM">BKM</option>
+                                </select>
+                                <input type="text" id="no_invoice" required readonly placeholder="AR 202609-001"
+                                    class="w-full bg-slate-100 font-mono font-bold text-blue-700 border border-slate-200 rounded px-2 py-1 text-[11px]">
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Pelanggan / Customer
+                                <span class="text-rose-500">*</span></label>
+                            <select id="select_customer" required
+                                placeholder="Cari nama atau kode pelanggan..."></select>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">No. PO / Ref.
+                                Customer</label>
+                            <input type="text" id="no_po_customer" placeholder="PO/CUST/2026/001"
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-mono outline-none focus:border-blue-500">
+                        </div>
+
+                        <!-- AKUN DEBIT PENERIMAAN -->
+                        <div>
+                            <div class="flex justify-between items-center mb-0.5">
+                                <label class="text-[10px] font-semibold text-blue-700">Akun Penagihan (Debit) <span
+                                        class="text-rose-500">*</span></label>
+                                <span class="text-[9px] text-slate-400 font-normal">Bisa Kas/Bank</span>
+                            </div>
+                            <select id="select_akun_debit" required placeholder="Pilih Akun Debit (11xx)..."></select>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Tanggal Invoice</label>
+                            <input type="date" id="tanggal" required
+                                onchange="generateSequentialInvNo(); hitungJatuhTempo();"
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Jatuh Tempo (Due
+                                Date)</label>
+                            <input type="date" id="jatuh_tempo" required
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-semibold text-rose-600 outline-none">
+                        </div>
+
+                        <!-- CABANG DINAMIS DARI SETUP_ORG -->
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Cabang <span
+                                    class="text-rose-500">*</span></label>
+                            <select id="kode_cabang" required
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-semibold text-slate-700 outline-none focus:border-blue-500">
+                                <option value="">Memuat cabang...</option>
+                            </select>
+                        </div>
+
+                        <!-- KETERANGAN FAKTUR DIPERLEBAR (md:col-span-2) -->
+                        <div class="md:col-span-2">
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Keterangan
+                                Faktur</label>
+                            <input type="text" id="keterangan" placeholder="Penjualan produk / rincian termin jasa..."
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none focus:border-blue-500">
+                        </div>
+                    </div>
+
+                    <!-- TABEL DETAIL PENDAPATAN / PENJUALAN -->
+                    <div class="pt-2">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[10px] font-bold text-slate-700 uppercase">Rincian Penjualan Barang / Jasa
+                                (Kredit Pendapatan)</span>
+                            <button type="button" onclick="tambahBarisDetail()"
+                                class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded text-[10px] font-semibold border border-slate-300">➕
+                                Tambah Baris</button>
+                        </div>
+
+                        <div class="border border-slate-200 rounded overflow-visible">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-slate-100 text-slate-600 text-[10px]">
+                                    <tr>
+                                        <th class="py-1 px-2 border-b w-1/3">Akun Pendapatan (COA Prefix 41/71)</th>
+                                        <th class="py-1 px-2 border-b">Deskripsi Barang / Jasa</th>
+                                        <th class="py-1 px-2 border-b text-right w-44">Nominal (Rp)</th>
+                                        <th class="py-1 px-2 border-b text-center w-12">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-detail" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- PENGATURAN PAJAK (TARIF % & NOMINAL) & REKAP NILAI -->
+                    <!-- PENGATURAN PAJAK & REKAP NILAI (KEMBALI KE DUA KOLOM SEJAJAR) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100 items-start">
+
+                        <!-- KOLOM KIRI: FORM PERPAJAKAN -->
+                        <div class="bg-slate-50 border border-slate-200 rounded p-2.5 space-y-2">
+                            <span class="text-[10px] font-bold text-slate-700 uppercase block border-b pb-1">Perpajakan
+                                Faktur Penjualan</span>
+
+                            <!-- PPN Keluaran -->
+                            <div class="grid grid-cols-12 gap-1.5 items-center">
+                                <label class="text-[10px] font-semibold text-slate-600 col-span-3">PPN Keluaran:</label>
+                                <div class="col-span-4">
+                                    <select id="select_ppn_coa" placeholder="Cari akun PPN..."></select>
+                                </div>
+                                <div
+                                    class="col-span-2 flex items-center bg-white border border-slate-300 rounded px-1.5 h-7">
+                                    <input type="number" id="ppn_persen" value="0" min="0" max="100" step="0.1"
+                                        oninput="hitungPajakDariPersen('ppn')" placeholder="0"
+                                        class="w-full text-right text-[11px] font-mono outline-none bg-transparent">
+                                    <span class="text-[10px] text-slate-400 ml-0.5 font-semibold">%</span>
+                                </div>
+                                <div class="col-span-3">
+                                    <input type="number" id="ppn_nominal" value="0" min="0"
+                                        oninput="hitungPersenDariNominal('ppn')" placeholder="Nominal Rp"
+                                        class="w-full bg-white border border-slate-300 rounded px-1.5 h-7 text-[11px] font-mono text-right outline-none focus:border-blue-500">
+                                </div>
+                            </div>
+
+                            <!-- Potongan PPh -->
+                            <div class="grid grid-cols-12 gap-1.5 items-center pt-1.5 border-t border-slate-200/70">
+                                <div class="col-span-3">
+                                    <select id="jenis_pph" onchange="autoSetTarifPPh()"
+                                        class="w-full bg-white border border-slate-300 rounded px-1 h-7 text-[10px] font-semibold text-slate-700 outline-none focus:border-blue-500">
+                                        <option value="">-- PPh --</option>
+                                        <option value="PPH Ps. 22">PPh 22 (1.5%)</option>
+                                        <option value="PPH Ps. 23">PPh 23 (2%)</option>
+                                    </select>
+                                </div>
+                                <div class="col-span-4">
+                                    <select id="select_pph_coa" placeholder="Cari akun PPh..."></select>
+                                </div>
+                                <div
+                                    class="col-span-2 flex items-center bg-white border border-slate-300 rounded px-1.5 h-7">
+                                    <input type="number" id="pph_persen" value="0" min="0" max="100" step="0.1"
+                                        oninput="hitungPajakDariPersen('pph')" placeholder="0"
+                                        class="w-full text-right text-[11px] font-mono outline-none text-rose-600 font-bold bg-transparent">
+                                    <span class="text-[10px] text-slate-400 ml-0.5 font-semibold">%</span>
+                                </div>
+                                <div class="col-span-3">
+                                    <input type="number" id="pph_nominal" value="0" min="0"
+                                        oninput="hitungPersenDariNominal('pph')" placeholder="Potongan Rp"
+                                        class="w-full bg-white border border-slate-300 rounded px-1.5 h-7 text-[11px] font-mono text-right outline-none text-rose-600 font-bold focus:border-rose-400">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- KOLOM KANAN: RINGKASAN TAGIHAN (LANGSUNG TERLIHAT SEJAJAR) -->
+                        <div
+                            class="bg-white border border-slate-200 rounded p-3 space-y-1.5 font-mono text-right shadow-xs">
+                            <div class="flex justify-between items-center text-slate-600 text-[11px]">
+                                <span class="font-sans font-semibold">Subtotal Penjualan:</span>
+                                <span id="lbl_subtotal" class="font-bold text-slate-800 text-xs">Rp 0</span>
+                            </div>
+                            <div class="flex justify-between items-center text-slate-600 text-[11px]">
+                                <span class="font-sans">(+) PPN Keluaran:</span>
+                                <span id="lbl_ppn" class="font-bold text-slate-700">Rp 0</span>
+                            </div>
+                            <div class="flex justify-between items-center text-rose-600 text-[11px]">
+                                <span class="font-sans">(-) Potongan PPh:</span>
+                                <span id="lbl_pph" class="font-bold">Rp 0</span>
+                            </div>
+                            <div
+                                class="flex justify-between items-center text-blue-700 font-bold border-t border-slate-200 pt-2 mt-1">
+                                <span class="font-sans uppercase text-[10px] tracking-wide">Total Tagihan
+                                    Piutang:</span>
+                                <span id="lbl_total" class="text-sm">Rp 0</span>
+                            </div>
+                        </div>
+
+                    </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-100 mt-3">
+                <button type="button" onclick="resetFormInvoice()"
+                    class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1 rounded text-[11px]">Reset
+                    Form</button>
+                <button type="submit" id="btnSimpanInvoice"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-1.5 rounded text-[11px] font-bold shadow-sm flex items-center gap-1.5">
+                    🚀 Ajukan Faktur (Kirim ke Posting Pending)
+                </button>
+            </div>
+            </form>
+        </div>
+
+
+        </div>
+    </main>
+
+    <script>
+        const formatRp = (v) => new Intl.NumberFormat('id-ID').format(v || 0);
+
+        let listCustomer = [];
+        let listCOA = [];
+        let tsCustomer = null;
+        let tsAkunDebit = null;
+        let tsPPN = null;
+        let tsPPh = null;
+        let tsBarisDetail = {};
+        let counterBaris = 0;
+
+        // ==========================================
+        // 1. INISIALISASI
+        // ==========================================
+        document.addEventListener("DOMContentLoaded", async () => {
+            document.getElementById('tanggal').value = new Date().toISOString().split('T')[0];
+
+            await generateSequentialInvNo();
+            await muatDaftarCabang(); // <-- Muat dari Master Cabang (setup_org)
+            await muatDataCustomer();
+            await muatDataCOA();
+            await muatDaftarInvoice();
+
+            tambahBarisDetail();
+        });
+
+        // ==========================================
+        // 2. NOMOR BUKTI INVOICE OTOMATIS
+        // ==========================================
+        async function generateSequentialInvNo() {
+            const voucher = document.getElementById('kode_voucher').value || "AR";
+            const tgl = document.getElementById('tanggal').value;
+            if (!tgl) return;
+
+            try {
+                const res = await fetch(`/api/customer_invoice/next-no?voucher=${encodeURIComponent(voucher)}&tanggal=${encodeURIComponent(tgl)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.next_no) {
+                        document.getElementById('no_invoice').value = data.next_no;
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn("Fallback nomor invoice internal:", e);
+            }
+
+            const ym = tgl.replace(/-/g, '').slice(0, 6);
+            document.getElementById('no_invoice').value = `${voucher} ${ym}-001`;
+        }
+
+        // ==========================================
+        // 3. MUAT DATA CABANG DARI SETUP_ORG
+        // ==========================================
+        async function muatDaftarCabang() {
+            try {
+                const resCbg = await fetch('/api/cabang');
+                const listCbg = await resCbg.json();
+                const selCbg = document.getElementById('kode_cabang');
+
+                if (listCbg && listCbg.length > 0) {
+                    selCbg.innerHTML = listCbg.map(c =>
+                        `<option value="${c.kode}">${c.kode} - ${c.nama}</option>`
+                    ).join('');
+                } else {
+                    selCbg.innerHTML = '<option value="HO" selected>HO - Kantor Pusat</option>';
+                }
+            } catch (e) {
+                console.warn("Gagal fetch cabang:", e);
+                document.getElementById('kode_cabang').innerHTML = '<option value="HO" selected>HO - Kantor Pusat</option>';
+            }
+        }
+
+        // ==========================================
+        // 4. MUAT MASTER CUSTOMER
+        // ==========================================
+        async function muatDataCustomer() {
+            const selCust = document.getElementById('select_customer');
+            try {
+                const res = await fetch('/api/customer');
+                listCustomer = await res.json();
+            } catch (e) {
+                listCustomer = [];
+            }
+
+            selCust.innerHTML = '<option value="">-- Cari Nama / Kode Pelanggan --</option>';
+            listCustomer.forEach(c => {
+                selCust.innerHTML += `<option value="${c.kode_customer}">${c.kode_customer} - ${c.nama_customer}</option>`;
+            });
+
+            try {
+                if (tsCustomer) tsCustomer.destroy();
+                tsCustomer = new TomSelect('#select_customer', {
+                    create: false,
+                    maxOptions: null,
+                    sortField: { field: "text", order: "asc" },
+                    searchField: ['text', 'value'],
+                    onChange: onCustomerDipilih
+                });
+            } catch (err) {
+                selCust.onchange = (e) => onCustomerDipilih(e.target.value);
+            }
+        }
+
+        function onCustomerDipilih(kodeCustomer) {
+            const cust = listCustomer.find(c => c.kode_customer === kodeCustomer);
+            if (cust) {
+                if (tsAkunDebit && cust.kode_akun_piutang) {
+                    tsAkunDebit.setValue(cust.kode_akun_piutang);
+                }
+                hitungJatuhTempo(cust.termin_hari || 30);
+            }
+        }
+
+        function hitungJatuhTempo(terminParam) {
+            const tglVal = document.getElementById('tanggal').value;
+            if (!tglVal) return;
+
+            let termin = terminParam;
+            if (termin === undefined) {
+                const kodeCust = tsCustomer ? tsCustomer.getValue() : document.getElementById('select_customer').value;
+                const cust = listCustomer.find(c => c.kode_customer === kodeCust);
+                termin = cust ? (cust.termin_hari || 0) : 30;
+            }
+
+            const tgl = new Date(tglVal);
+            tgl.setDate(tgl.getDate() + parseInt(termin || 0));
+            document.getElementById('jatuh_tempo').value = tgl.toISOString().split('T')[0];
+        }
+
+        // ==========================================
+        // 5. MUAT DATA COA
+        // ==========================================
+        async function muatDataCOA() {
+            try {
+                const res = await fetch('/api/coa');
+                listCOA = await res.json();
+            } catch (e) {
+                listCOA = [];
+            }
+
+            const selDebit = document.getElementById('select_akun_debit');
+            selDebit.innerHTML = '<option value="">-- Pilih Akun Debit --</option>';
+
+            const selPPN = document.getElementById('select_ppn_coa');
+            selPPN.innerHTML = '<option value="">-- Pilih Akun PPN Keluaran --</option>';
+
+            const selPPh = document.getElementById('select_pph_coa');
+            selPPh.innerHTML = '<option value="">-- Pilih Akun Uang Muka PPh --</option>';
+
+            listCOA.forEach(c => {
+                const kode = c.kode || c.kode_akun || c.no_akun;
+                const nama = (c.nama || c.nama_akun || '').trim();
+                const opt = `<option value="${kode}">${kode} - ${nama}</option>`;
+
+                if (String(kode).startsWith('11') || String(kode).startsWith('1')) {
+                    selDebit.innerHTML += opt;
+                }
+                if (String(kode).startsWith('21') || nama.toLowerCase().includes('ppn')) {
+                    selPPN.innerHTML += opt;
+                }
+                if (String(kode).startsWith('11') || nama.toLowerCase().includes('pph')) {
+                    selPPh.innerHTML += opt;
+                }
+            });
+
+            tsAkunDebit = new TomSelect('#select_akun_debit', {
+                create: false,
+                maxOptions: null,
+                placeholder: "🔍 Cari Akun Piutang / Kas / Bank...",
+                sortField: { field: "text", order: "asc" }
+            });
+
+            tsPPN = new TomSelect('#select_ppn_coa', {
+                create: false,
+                maxOptions: null,
+                placeholder: "🔍 Cari Akun PPN Keluaran...",
+                sortField: { field: "text", order: "asc" }
+            });
+
+            tsPPh = new TomSelect('#select_pph_coa', {
+                create: false,
+                maxOptions: null,
+                placeholder: "🔍 Cari Akun Uang Muka PPh...",
+                sortField: { field: "text", order: "asc" }
+            });
+        }
+
+        // ==========================================
+        // 6. BARIS DETAIL PENDAPATAN
+        // ==========================================
+        function tambahBarisDetail() {
+            counterBaris++;
+            const idBaris = `row-${counterBaris}`;
+            const idSelect = `akun-detail-${counterBaris}`;
+            const tbody = document.getElementById('tbody-detail');
+
+            let opsiCoa = '<option value="">-- Pilih Akun Pendapatan --</option>';
+            listCOA.forEach(c => {
+                const kode = c.kode || c.kode_akun || c.no_akun;
+                const nama = (c.nama || c.nama_akun || '').trim();
+                if (String(kode).startsWith('4') || String(kode).startsWith('7')) {
+                    opsiCoa += `<option value="${kode}">${kode} - ${nama}</option>`;
+                }
+            });
+
+            const tr = document.createElement('tr');
+            tr.id = idBaris;
+            tr.innerHTML = `
+                <td class="p-1">
+                    <select id="${idSelect}">${opsiCoa}</select>
+                </td>
+                <td class="p-1">
+                    <input type="text" id="desc-${counterBaris}" placeholder="Rincian produk / termin jasa..." class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                </td>
+                <td class="p-1">
+                    <input type="number" id="nom-${counterBaris}" value="0" min="0" oninput="hitungKalkulasiAkhir()" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-mono text-right outline-none">
+                </td>
+                <td class="p-1 text-center">
+                    <button type="button" onclick="hapusBaris('${idBaris}', '${idSelect}')" class="text-rose-600 hover:bg-rose-50 px-1 py-0.5 rounded">❌</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+
+            tsBarisDetail[idSelect] = new TomSelect(`#${idSelect}`, {
+                create: false,
+                maxOptions: null,
+                placeholder: "🔍 Cari Akun Pendapatan...",
+                sortField: { field: "text", order: "asc" }
+            });
+        }
+
+        function hapusBaris(idRow, idSelect) {
+            if (tsBarisDetail[idSelect]) {
+                tsBarisDetail[idSelect].destroy();
+                delete tsBarisDetail[idSelect];
+            }
+            const el = document.getElementById(idRow);
+            if (el) el.remove();
+            hitungKalkulasiAkhir();
+        }
+
+        // ==========================================
+        // 7. PERHITUNGAN PAJAK DAN TOTAL
+        // ==========================================
+        function getSubtotalPenjualan() {
+            let subtotal = 0;
+            const rows = document.getElementById('tbody-detail')?.children || [];
+            for (let r of rows) {
+                const inputNom = r.querySelector("input[type='number']");
+                if (inputNom) subtotal += parseFloat(inputNom.value) || 0;
+            }
+            return subtotal;
+        }
+
+        function autoSetTarifPPh() {
+            const jenis = document.getElementById('jenis_pph').value;
+            const inpPersen = document.getElementById('pph_persen');
+
+            if (jenis === 'PPH Ps. 22') inpPersen.value = 1.5;
+            else if (jenis === 'PPH Ps. 23') inpPersen.value = 2;
+            else inpPersen.value = 0;
+
+            hitungPajakDariPersen('pph');
+        }
+
+        function hitungPajakDariPersen(tipe) {
+            const subtotal = getSubtotalPenjualan();
+            if (tipe === 'ppn') {
+                const persen = parseFloat(document.getElementById('ppn_persen').value) || 0;
+                document.getElementById('ppn_nominal').value = Math.round((subtotal * persen) / 100);
+            } else if (tipe === 'pph') {
+                const persen = parseFloat(document.getElementById('pph_persen').value) || 0;
+                document.getElementById('pph_nominal').value = Math.round((subtotal * persen) / 100);
+            }
+            hitungKalkulasiAkhir(false);
+        }
+
+        function hitungPersenDariNominal(tipe) {
+            const subtotal = getSubtotalPenjualan();
+            if (subtotal <= 0) {
+                hitungKalkulasiAkhir(false);
+                return;
+            }
+
+            if (tipe === 'ppn') {
+                const nominal = parseFloat(document.getElementById('ppn_nominal').value) || 0;
+                document.getElementById('ppn_persen').value = ((nominal / subtotal) * 100).toFixed(2);
+            } else if (tipe === 'pph') {
+                const nominal = parseFloat(document.getElementById('pph_nominal').value) || 0;
+                document.getElementById('pph_persen').value = ((nominal / subtotal) * 100).toFixed(2);
+            }
+            hitungKalkulasiAkhir(false);
+        }
+
+        function hitungKalkulasiAkhir(recalculatePajak = true) {
+            const subtotal = getSubtotalPenjualan();
+
+            if (recalculatePajak) {
+                const persenPPN = parseFloat(document.getElementById('ppn_persen').value) || 0;
+                const persenPPh = parseFloat(document.getElementById('pph_persen').value) || 0;
+
+                if (persenPPN > 0) document.getElementById('ppn_nominal').value = Math.round((subtotal * persenPPN) / 100);
+                if (persenPPh > 0) document.getElementById('pph_nominal').value = Math.round((subtotal * persenPPh) / 100);
+            }
+
+            const ppn = parseFloat(document.getElementById('ppn_nominal').value) || 0;
+            const pph = parseFloat(document.getElementById('pph_nominal').value) || 0;
+            const totalTagihan = (subtotal + ppn) - pph;
+
+            document.getElementById('lbl_subtotal').innerText = `Rp ${formatRp(subtotal)}`;
+            document.getElementById('lbl_ppn').innerText = `Rp ${formatRp(ppn)}`;
+            document.getElementById('lbl_pph').innerText = `Rp ${formatRp(pph)}`;
+            document.getElementById('lbl_total').innerText = `Rp ${formatRp(totalTagihan)}`;
+        }
+
+        // ==========================================
+        // 8. SIMPAN FAKTUR (TANPA DEPARTEMEN)
+        // ==========================================
+        async function simpanInvoice(e) {
+            e.preventDefault();
+
+            const kodeCustomer = tsCustomer ? tsCustomer.getValue() : document.getElementById('select_customer').value;
+            if (!kodeCustomer) return alert("⚠️ Silakan pilih rekanan Pelanggan terlebih dahulu!");
+
+            const akunDebit = tsAkunDebit ? tsAkunDebit.getValue() : document.getElementById('select_akun_debit').value;
+            if (!akunDebit) return alert("⚠️ Pilih Akun Penagihan (Debit)!");
+
+            const rows = document.getElementById('tbody-detail')?.children || [];
+            if (rows.length === 0) return alert("Tambahkan minimal 1 baris rincian pendapatan!");
+
+            const detailItems = [];
+            for (let r of rows) {
+                const sel = r.querySelector("select");
+                const valAkun = tsBarisDetail[sel.id] ? tsBarisDetail[sel.id].getValue() : sel.value;
+                const desc = r.querySelector("input[type='text']").value;
+                const nom = parseFloat(r.querySelector("input[type='number']").value) || 0;
+
+                if (!valAkun || nom <= 0) continue;
+
+                const coaObj = listCOA.find(c => (c.kode || c.kode_akun || c.no_akun) === valAkun);
+                detailItems.push({
+                    kode_akun: valAkun,
+                    nama_akun: coaObj ? (coaObj.nama || coaObj.nama_akun) : "Pendapatan Usaha",
+                    deskripsi: desc,
+                    nominal: nom
+                });
+            }
+
+            if (detailItems.length === 0) return alert("Pilih akun COA Pendapatan dan nominal dengan benar!");
+
+            const ppnNom = parseFloat(document.getElementById('ppn_nominal').value) || 0;
+            const pphNom = parseFloat(document.getElementById('pph_nominal').value) || 0;
+            const akunPPN = tsPPN ? tsPPN.getValue() : document.getElementById('select_ppn_coa').value;
+            const jenisPPh = document.getElementById('jenis_pph').value;
+            const akunPPh = tsPPh ? tsPPh.getValue() : document.getElementById('select_pph_coa').value;
+
+            if (ppnNom > 0 && !akunPPN) return alert("Nilai PPN diisi, pilih Akun PPN Keluaran!");
+            if (pphNom > 0 && (!jenisPPh || !akunPPh)) return alert("Potongan PPh diisi, pilih Jenis PPh dan Akun Uang Muka!");
+
+            const btn = document.getElementById('btnSimpanInvoice');
+            const origBtn = btn.innerHTML;
+            btn.innerHTML = "⏳ Mengirim ke Posting Pending...";
+            btn.disabled = true;
+
+            const payload = {
+                kode_voucher: document.getElementById('kode_voucher').value || "AR",
+                no_invoice: document.getElementById('no_invoice').value,
+                no_po_customer: document.getElementById('no_po_customer').value.trim() || "-",
+                no_faktur_pajak: document.getElementById('no_po_customer').value.trim() || "-",
+                tanggal: document.getElementById('tanggal').value,
+                jatuh_tempo: document.getElementById('jatuh_tempo').value,
+                kode_customer: kodeCustomer,
+                kode_akun_piutang: akunDebit,
+                kode_cabang: document.getElementById('kode_cabang').value || "HO",
+                keterangan: document.getElementById('keterangan').value.trim() || "-",
+                kode_akun_ppn: akunPPN,
+                ppn_nominal: ppnNom,
+                jenis_pph: jenisPPh,
+                kode_akun_pph: akunPPh,
+                pph_nominal: pphNom,
+                pembuat: "Staff_AR",
+                detail: detailItems
+            };
+
+            try {
+                const res = await fetch('/api/customer_invoice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const resJson = await res.json();
+
+                if (res.ok) {
+                    alert("🎉 " + resJson.pesan);
+                    resetFormInvoice();
+                    muatDaftarInvoice();
+                } else {
+                    alert("❌ Gagal Simpan: " + (resJson.detail || "Terjadi kesalahan."));
+                }
+            } catch (err) {
+                alert("Kesalahan koneksi ke server.");
+            } finally {
+                btn.innerHTML = origBtn;
+                btn.disabled = false;
+            }
+        }
+
+        // ==========================================
+        // 9. TABEL DAFTAR FAKTUR
+        // ==========================================
+        async function muatDaftarInvoice() {
+            try {
+                const res = await fetch('/api/customer_invoice');
+                const invoices = await res.json();
+                const tbody = document.getElementById('tabel-invoice-body');
+                tbody.innerHTML = "";
+
+                if (invoices.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" class="py-6 text-center text-slate-400 italic">Belum ada faktur penjualan tersimpan.</td></tr>';
+                    return;
+                }
+
+                invoices.forEach(inv => {
+                    let badge = '';
+                    if (inv.status === 'Pending') {
+                        badge = '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[9px] font-bold">⏳ PENDING</span>';
+                    } else if (inv.status === 'Draft' || inv.status === 'Rejected') {
+                        badge = '<span class="bg-slate-200 text-slate-700 px-2 py-0.5 rounded text-[9px] font-bold">📝 DRAFT</span>';
+                    } else if (inv.saldo_terutang <= 0) {
+                        badge = '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[9px] font-bold">✅ LUNAS</span>';
+                    } else {
+                        badge = '<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[9px] font-bold">📌 OPEN</span>';
+                    }
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="py-1.5 px-2 font-mono font-bold text-blue-700">${inv.no_invoice}</td>
+                            <td class="py-1.5 px-2 font-semibold text-slate-800">${inv.nama_customer}</td>
+                            <td class="py-1.5 px-2 font-mono text-slate-600">${inv.kode_cabang || 'HO'}</td>
+                            <td class="py-1.5 px-2 font-mono text-slate-500">${inv.tanggal}</td>
+                            <td class="py-1.5 px-2 font-mono font-semibold text-rose-600">${inv.jatuh_tempo}</td>
+                            <td class="py-1.5 px-2 text-right font-mono text-slate-800">Rp ${formatRp(inv.total_invoice)}</td>
+                            <td class="py-1.5 px-2 text-right font-mono font-bold text-blue-700">Rp ${formatRp(inv.saldo_terutang)}</td>
+                            <td class="py-1.5 px-2 text-center">${badge}</td>
+                            <td class="py-1.5 px-2 text-center whitespace-nowrap">
+                                <button type="button" onclick="cetakInvoice('${inv.no_invoice}')" class="text-blue-600 hover:bg-blue-50 px-1.5 py-0.5 rounded" title="Cetak Faktur">🖨️</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (e) {
+                console.error("Gagal muat faktur:", e);
+            }
+        }
+
+        function cetakInvoice(noInv) {
+            window.open(`/cetak_invoice?no_invoice=${encodeURIComponent(noInv)}`, '_blank');
+        }
+
+        function resetFormInvoice() {
+            Object.keys(tsBarisDetail).forEach(id => {
+                if (tsBarisDetail[id]) tsBarisDetail[id].destroy();
+            });
+            tsBarisDetail = {};
+
+            document.getElementById('formInvoice').reset();
+            if (tsCustomer) tsCustomer.clear();
+            if (tsAkunDebit) tsAkunDebit.clear();
+            if (tsPPN) tsPPN.clear();
+            if (tsPPh) tsPPh.clear();
+
+            document.getElementById('ppn_persen').value = "0";
+            document.getElementById('pph_persen').value = "0";
+            document.getElementById('tbody-detail').innerHTML = "";
+            document.getElementById('tanggal').value = new Date().toISOString().split('T')[0];
+
+            generateSequentialInvNo();
+            tambahBarisDetail();
+            hitungKalkulasiAkhir();
+        }
+    </script>
+</body>
+
+</html>

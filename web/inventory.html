@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaksi In/Out Gudang - SAP BoB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tom Select untuk Dropdown Pencarian -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
+    <script src="/role_akses.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .ts-control {
+            padding: 8px 10px !important;
+            font-size: 12px !important;
+            border-color: #e2e8f0 !important;
+            background-color: #f8fafc !important;
+            border-radius: 0.375rem !important;
+        }
+    </style>
+</head>
+<body class="h-full flex overflow-hidden text-slate-700 text-xs">
+
+    <!-- SIDEBAR -->
+    <aside class="w-48 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800 shadow-xl z-20">
+        <div class="h-12 px-3 bg-slate-950/80 flex items-center gap-2 border-b border-slate-800/80">
+            <span class="text-xl">🏢</span>
+            <h1 class="text-xs font-bold text-white tracking-wide">SAP BoB</h1>
+        </div>
+        <nav class="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
+            <div class="px-2 pb-1.5 text-[9px] font-semibold text-slate-500 uppercase tracking-wider">Modul Akuntansi</div>
+            <a href="/dashboard" class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>📊</span> Dashboard</a>
+            <a href="/gl" class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>📓</span> Jurnal Umum</a>
+            <a href="/buku_besar" class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>📖</span> Buku Besar</a>
+            
+
+
+
+            <div class="pt-3 border-t border-slate-800/80 mt-2">
+                <div class="px-2 pb-1.5 text-[9px] font-semibold text-emerald-500 uppercase tracking-wider">Modul Gudang</div>
+                <a href="/master_barang" class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all mt-0.5"><span>📦</span> Master Barang</a>
+                <a href="/inventory" class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-semibold text-white bg-indigo-600/90 shadow-sm transition-all mt-0.5"><span>🔄</span> In/Out Gudang</a>
+            </div>
+        </nav>
+        <div class="p-2 bg-slate-950/60 border-t border-slate-800/80">
+            <button onclick="localStorage.clear(); window.location.href='/';" class="w-full bg-slate-800 hover:bg-rose-600/80 text-slate-300 hover:text-white py-1.5 px-2 rounded text-[10px] font-medium transition-all">🚪 Logout</button>
+        </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-100/70">
+        <header class="h-10 bg-white border-b border-slate-200/80 px-4 flex items-center shadow-xs z-10 flex-shrink-0">
+            <div class="flex items-center gap-1.5 text-[11px]">
+                <span class="text-slate-400">Inventory</span> <span class="text-slate-300">/</span> <h2 class="font-semibold text-slate-800">Transaksi</h2>
+            </div>
+            <div class="flex-2 items-center gap-2">
+                <button type="button" id="btn_sync" onclick="eksekusiSinkronisasi()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold px-3 py-1 rounded text-[11px] flex items-center gap-1.5 transition-all shadow-xs">
+                    <span>🚀</span> Kirim Data ke Server Pusat
+                </button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6 flex justify-center">
+            
+            <!-- FORM TRANSAKSI TUNGGAL -->
+            <div class="bg-white rounded-lg border border-slate-200 shadow-md p-6 max-w-3xl w-full h-max border-t-4 border-t-indigo-600">
+                <div class="flex justify-between items-center border-b pb-3 mb-5">
+                    <h3 class="font-bold text-slate-800 text-sm uppercase">📄 Input Transaksi Gudang</h3>
+                    <span class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-[10px] font-bold">Auto Jurnal Aktif</span>
+                </div>
+
+                <!-- SISIPKAN DI BAWAH KARTU FORM TRANSAKSI PADA WEB/INVENTORY.HTML -->
+                <div class="bg-white rounded-lg border border-slate-200 shadow-md p-5 max-w-4xl w-full mt-6">
+                    <div class="flex justify-between items-center border-b pb-3 mb-4">
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-xs uppercase tracking-wider">📋 Riwayat Transaksi Gudang Terbaru</h3>
+                            <p class="text-[10px] text-slate-400">Status sinkronisasi mutasi gudang lokal dengan server kantor pusat.</p>
+                        </div>
+                        <button onclick="muatRiwayatTransaksi()" class="text-indigo-600 hover:text-indigo-800 font-bold text-[11px] flex items-center gap-1">
+                            🔄 Segarkan Tabel
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-[11px]">
+                            <thead class="bg-slate-100 text-slate-600 border-b">
+                                <tr>
+                                    <th class="p-2.5 border-r w-28">No. Bukti</th>
+                                    <th class="p-2.5 border-r w-20 text-center">Tanggal</th>
+                                    <th class="p-2.5 border-r w-20 text-center">Jenis</th>
+                                    <th class="p-2.5 border-r">Barang</th>
+                                    <th class="p-2.5 border-r text-center w-16">Qty</th>
+                                    <th class="p-2.5 border-r text-right w-28">Total Nilai</th>
+                                    <th class="p-2.5 border-r text-center w-28">Status Sinkronisasi</th>
+                                    <th class="p-2.5 text-center w-16">Cetak</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabel_riwayat_body" class="divide-y divide-slate-100">
+                                <tr><td colspan="8" class="p-5 text-center text-slate-400 italic">Memuat riwayat transaksi...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <form id="formInventory" onsubmit="simpanTransaksi(event)">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        
+                        <!-- BARIS 1: Jenis Transaksi & Tanggal -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1.5">Jenis Transaksi <span class="text-rose-500">*</span></label>
+                            <select id="jenis_transaksi" required onchange="ubahJenisTransaksi()" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3 py-2 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="Masuk">📥 BARANG MASUK (Pembelian)</option>
+                                <option value="Keluar">📤 BARANG KELUAR (Penjualan/Pemakaian)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1.5">Tanggal <span class="text-rose-500">*</span></label>
+                            <input type="date" id="tanggal" required class="w-full bg-slate-50 border border-slate-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+
+                        <!-- BARIS 2: No Bukti & Akun Lawan -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1.5">No. Bukti / Referensi <span class="text-rose-500">*</span></label>
+                            <div class="flex">
+                                <input type="text" id="no_bukti" required class="w-full bg-white border border-slate-300 rounded-l-md px-3 py-2 text-sm font-mono font-bold text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none uppercase placeholder-slate-400" placeholder="Ketik atau Auto">
+                                <button type="button" onclick="generateAutoBukti()" class="bg-slate-700 hover:bg-slate-800 text-white px-3 rounded-r-md transition-colors" title="Generate Otomatis">🔄</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1.5">Kode Akun Inventory <span class="text-rose-500">*</span></label>
+                            <select id="akun_lawan" required class="w-full">
+                                <option value="">Memuat akun...</option>
+                            </select>
+                            <p id="hint_akun" class="text-[10px] text-slate-400 mt-1 italic">Pilih akun Kas/Bank/Hutang untuk pembelian.</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Cabang <span class="text-rose-500">*</span></label>
+                                <select id="kode_cabang" required class="w-full bg-slate-50 border border-slate-300 rounded-md px-3 py-2 text-xs font-bold text-slate-700 outline-none">
+                                    <option value="">Memuat cabang...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Departemen <span class="text-rose-500">*</span></label>
+                                <select id="kode_departemen" required class="w-full bg-slate-50 border border-slate-300 rounded-md px-3 py-2 text-xs font-bold text-slate-700 outline-none">
+                                    <option value="">Memuat departemen...</option>
+                                </select>
+                            </div>
+                        </div>        
+
+                        <div class="md:col-span-3">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label class="block text-xs font-semibold text-slate-500">Pilih Master Barang <span class="text-rose-500">*</span></label>
+                                <a href="/master_barang" target="_blank" class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                                    ➕ Daftarkan Barang Baru
+                                </a>
+                            </div>
+                            <select id="kode_barang" required class="w-full" onchange="autoIsiInfoBarang()">
+                                <option value="">Memuat barang...</option>
+                            </select>
+                        </div>
+
+                        <!-- BARIS 3: Barang & Keterangan -->
+                        <div class="md:col-span-2 bg-slate-50 p-4 rounded-lg border border-slate-200 mt-2">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                                            
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1.5">Qty / Jumlah <span class="text-rose-500">*</span></label>
+                                    <input type="number" id="qty" required min="0.01" step="0.01" value="1" oninput="hitungTotal()" class="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-indigo-500 outline-none">
+                                    <p id="info_stok" class="text-[10px] text-emerald-600 font-semibold mt-1">Stok saat ini: -</p>
+                                </div>
+                                
+                                <div>
+                                    <label id="label_harga" class="block text-xs font-semibold text-slate-500 mb-1.5">Harga Beli Baru (Rp) <span class="text-rose-500">*</span></label>
+                                    <input type="number" id="harga_satuan" required min="0" value="0" oninput="hitungTotal()" class="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-indigo-500 outline-none">
+                                    <p id="info_hpp" class="text-[10px] text-slate-400 font-semibold mt-1">Rata-rata: -</p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1.5">Total Nilai (Rp)</label>
+                                    <input type="text" id="total_nilai_display" readonly value="Rp 0" class="w-full bg-slate-200 border border-slate-300 rounded-md px-3 py-2 text-sm font-mono font-bold text-slate-600 outline-none">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1.5">Keterangan Transaksi / Catatan</label>
+                                <input type="text" id="keterangan" placeholder="Contoh: Pembelian stok dari Supplier A" class="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
+                        </div>
+
+                    </div>
+                    
+                    <div class="mt-6 flex justify-between items-center pt-4 border-t border-slate-200">
+                        <button type="button" onclick="cetakUlangTransaksi()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded-md text-xs border border-slate-300 flex items-center gap-1.5 transition-colors">
+                            🖨️ Cetak Ulang Dokumen
+                        </button>
+
+                        <div class="flex gap-2">
+                            <button type="button" onclick="window.location.reload()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-5 rounded-md text-xs transition-colors">
+                                Batal
+                            </button>
+                            <button type="submit" id="btn_simpan" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 rounded-md transition-colors shadow text-xs flex items-center gap-2">
+                                💾 PROSES & POSTING JURNAL
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const formatRp = (v) => new Intl.NumberFormat('id-ID').format(v);
+        
+        let listMasterBarang = [];
+        let tsAkunLawan, tsBarang;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById('tanggal').valueAsDate = new Date();
+            generateAutoBukti();
+            muatDataMaster();
+            muatCabangDept(); 
+            muatDataMaster();
+        });
+
+        // 1. Generate No Bukti Berdasarkan Timestamp (Contoh: IN-20260822-1530)
+        async function generateAutoBukti() {
+            const jenis = document.getElementById('jenis_transaksi').value; // 'Masuk' atau 'Keluar'
+            const tgl = document.getElementById('tanggal').value;
+            if (!tgl) return;
+
+            try {
+                const res = await fetch(`/api/inventory/next-ref?jenis=${encodeURIComponent(jenis)}&tanggal=${encodeURIComponent(tgl)}`);
+                const data = await res.json();
+                if (data.no_bukti) {
+                    document.getElementById('no_bukti').value = data.no_bukti;
+                }
+            } catch (e) {
+                console.error("Gagal mengambil no bukti urut:", e);
+            }
+        }
+
+        // Muat Cabang dan Departemen saat DOM Ready
+        async function muatCabangDept() {
+            // 1. Muat Cabang
+            try {
+                const resCabang = await fetch('/api/cabang');
+                const listCabang = await resCabang.json();
+                const selCabang = document.getElementById('kode_cabang');
+                selCabang.innerHTML = '';
+                
+                if (!listCabang || listCabang.length === 0) {
+                    selCabang.innerHTML = '<option value="HO">HO - Head Office</option>';
+                } else {
+                    selCabang.innerHTML = listCabang.map(c => `<option value="${c.kode}">${c.kode} - ${c.nama}</option>`).join('');
+                }
+            } catch (e) {
+                console.error("Gagal muat cabang:", e);
+                document.getElementById('kode_cabang').innerHTML = '<option value="HO">HO - Head Office (Default)</option>';
+            }
+
+            // 2. Muat Departemen
+            try {
+                const resDept = await fetch('/api/departemen');
+                const listDept = await resDept.json();
+                const selDept = document.getElementById('kode_departemen');
+                selDept.innerHTML = '';
+                
+                if (!listDept || listDept.length === 0) {
+                    selDept.innerHTML = '<option value="LOG">LOG - Logistik & Gudang</option>';
+                } else {
+                    selDept.innerHTML = listDept.map(d => `<option value="${d.kode}" ${d.kode === 'LOG' ? 'selected' : ''}>${d.kode} - ${d.nama}</option>`).join('');
+                }
+            } catch (e) {
+                console.error("Gagal muat departemen:", e);
+                document.getElementById('kode_departemen').innerHTML = '<option value="LOG">LOG - Logistik (Default)</option>';
+            }
+        }
+
+        // Sertakan kode_cabang & kode_departemen di payload simpanTransaksi()
+        const payload = {
+            no_bukti: document.getElementById('no_bukti').value.trim(),
+            tanggal: document.getElementById('tanggal').value,
+            kode_barang: document.getElementById('kode_barang').value,
+            jenis_transaksi: document.getElementById('jenis_transaksi').value,
+            qty: parseFloat(document.getElementById('qty').value),
+            harga_satuan: parseFloat(document.getElementById('harga_satuan').value),
+            akun_lawan: document.getElementById('akun_lawan').value,
+            kode_cabang: document.getElementById('kode_cabang').value || "HO",
+            kode_departemen: document.getElementById('kode_departemen').value || "LOG",
+            keterangan: document.getElementById('keterangan').value.trim() || "Transaksi Inventory"
+        };
+
+        function cetakUlangTransaksi() {
+            const noBukti = prompt("Masukkan Nomor Bukti Transaksi yang ingin dicetak:\n(Contoh: IN-202608-001 atau OUT-202608-001)");
+            if (noBukti && noBukti.trim() !== "") {
+                window.open(`/cetak_inventory?no_bukti=${encodeURIComponent(noBukti.trim().toUpperCase())}`, '_blank');
+            }
+        }
+
+        // 2. Fetch Data COA & Master Barang
+        async function muatDataMaster() {
+            try {
+                // A. Muat Master Akun (COA)
+                const resCoa = await fetch('/api/coa');
+                const coas = await resCoa.json();
+                const selAkun = document.getElementById('akun_lawan');
+                
+                let opsiCoa = '<option value="">-- Cari Akun Penyeimbang --</option>';
+                coas.forEach(c => {
+                    const kode = c.kode_akun || c.kode || c.no_akun;
+                    opsiCoa += `<option value="${kode}">${kode} - ${c.nama_akun || c.nama}</option>`;
+                });
+                selAkun.innerHTML = opsiCoa;
+                
+                tsAkunLawan = new TomSelect('#akun_lawan', { 
+                    create: false, 
+                    sortField: {field: "text", direction: "asc"},
+                    placeholder: "Pilih Akun Lawan..."
+                });
+
+                // B. Muat Master Barang
+                const resBrg = await fetch('/api/barang');
+                listMasterBarang = await resBrg.json();
+                const selBrg = document.getElementById('kode_barang');
+                
+                let opsiBrg = '<option value="">-- Cari Kode / Nama Barang --</option>';
+                listMasterBarang.forEach(b => {
+                    opsiBrg += `<option value="${b.kode_barang}">${b.kode_barang} - ${b.nama_barang}</option>`;
+                });
+                selBrg.innerHTML = opsiBrg;
+                
+                tsBarang = new TomSelect('#kode_barang', { 
+                    create: false, 
+                    sortField: {field: "text", direction: "asc"},
+                    placeholder: "Pilih Barang..."
+                });
+
+            } catch (err) { 
+                console.error("Error memuat master data:", err); 
+                alert("Gagal memuat database COA atau Barang."); 
+            }
+        }
+
+        // 3. Auto Adjust Form Saat Jenis Transaksi Berubah
+        function ubahJenisTransaksi() {
+            generateAutoBukti();
+            const jenis = document.getElementById('jenis_transaksi').value;
+            const hintAkun = document.getElementById('hint_akun');
+            const labelHarga = document.getElementById('label_harga');
+            const inputHarga = document.getElementById('harga_satuan');
+
+            if (jenis === 'Masuk') {
+                hintAkun.innerText = "Pilih akun Kas/Bank/Hutang untuk pembayaran pembelian.";
+                labelHarga.innerHTML = `Harga Beli Baru (Rp) <span class="text-rose-500">*</span>`;
+                inputHarga.readOnly = false;
+                inputHarga.classList.remove('bg-slate-200', 'text-slate-500');
+                inputHarga.classList.add('bg-white');
+            } else {
+                hintAkun.innerText = "Pilih akun HPP (Harga Pokok Penjualan) atau Beban Material.";
+                labelHarga.innerHTML = `HPP / Rata-rata (Otomatis) (Rp)`;
+                inputHarga.readOnly = true; // Barang keluar tidak boleh ubah harga pokok
+                inputHarga.classList.remove('bg-white');
+                inputHarga.classList.add('bg-slate-200', 'text-slate-500');
+            }
+            
+            autoIsiInfoBarang(); // Refresh harga
+        }
+
+        // 4. Isi Informasi Barang & Harga Otomatis
+        function autoIsiInfoBarang() {
+            const kodeBrg = document.getElementById('kode_barang').value;
+            const jenis = document.getElementById('jenis_transaksi').value;
+            const brg = listMasterBarang.find(b => b.kode_barang === kodeBrg);
+            
+            if (brg) {
+                // Asumsikan backend mengembalikan 'harga_rata_rata' atau 'harga_beli'
+                const hargaRataRata = brg.harga_rata_rata || brg.harga_beli || 0;
+                const stok = brg.stok_sekarang || 0;
+
+                document.getElementById('info_stok').innerText = `Stok Gudang: ${stok} ${brg.satuan || ''}`;
+                document.getElementById('info_hpp').innerText = `HPP Saat ini: ${formatRp(hargaRataRata)}`;
+
+                if (jenis === 'Keluar') {
+                    // Jika keluar, paksa harga menggunakan Harga Rata-rata / HPP
+                    document.getElementById('harga_satuan').value = hargaRataRata;
+                }
+            } else {
+                document.getElementById('info_stok').innerText = `Stok Gudang: -`;
+                document.getElementById('info_hpp').innerText = `HPP Saat ini: -`;
+            }
+            hitungTotal();
+        }
+
+        // 5. Hitung Subtotal Real-time
+        function hitungTotal() {
+            const qty = parseFloat(document.getElementById('qty').value) || 0;
+            const harga = parseFloat(document.getElementById('harga_satuan').value) || 0;
+            const total = qty * harga;
+            document.getElementById('total_nilai_display').value = `Rp ${formatRp(total)}`;
+        }
+
+        // 6. Eksekusi Simpan ke Backend (API)
+        async function simpanTransaksi(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn_simpan');
+            btn.innerHTML = "⏳ Memproses...";
+            btn.disabled = true;
+
+            const payload = {
+                no_bukti: document.getElementById('no_bukti').value.trim(),
+                tanggal: document.getElementById('tanggal').value,
+                kode_barang: document.getElementById('kode_barang').value,
+                jenis_transaksi: document.getElementById('jenis_transaksi').value,
+                qty: parseFloat(document.getElementById('qty').value),
+                harga_satuan: parseFloat(document.getElementById('harga_satuan').value),
+                akun_lawan: document.getElementById('akun_lawan').value,
+                kode_cabang: "HO",
+                keterangan: document.getElementById('keterangan').value.trim() || "Transaksi Inventory"
+            };
+
+            try {
+                const res = await fetch('/api/inventory/transaksi', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+
+                if (res.ok) {
+                    const cetak = confirm(`🎉 ${result.pesan}\n\nApakah Anda ingin MENCETAK BUKTI TRANSAKSI (${payload.no_bukti}) sekarang?`);
+                    if (cetak) {
+                        window.open(`/cetak_inventory?no_bukti=${encodeURIComponent(payload.no_bukti)}`, '_blank');
+                    }
+
+                    // Bersihkan form & langsung generate nomor urut berikutnya (+1)
+                    document.getElementById('qty').value = "1";
+                    document.getElementById('harga_satuan').value = "0";
+                    document.getElementById('keterangan').value = "";
+                    tsBarang.clear();
+                    await generateAutoBukti();
+                } else {
+                    alert("❌ GAGAL: " + result.detail);
+                }
+            } catch (err) {
+                alert("Kesalahan jaringan/server.");
+            } finally {
+                btn.innerHTML = "💾 PROSES & POSTING JURNAL";
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

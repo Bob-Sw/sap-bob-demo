@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Barang (Inventory) - SAP BoB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tom Select (Dropdown Search) -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
+    <script src="/role_akses.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .ts-control {
+            padding: 4px 8px !important;
+            font-size: 11px !important;
+            border-color: #e2e8f0 !important;
+            background-color: #f8fafc !important;
+            border-radius: 0.25rem !important;
+            min-height: 28px !important;
+        }
+
+        .ts-dropdown,
+        .ts-dropdown .option {
+            font-size: 11px !important;
+        }
+    </style>
+</head>
+
+<body class="h-full flex overflow-hidden text-slate-700 text-xs">
+
+    <!-- SIDEBAR -->
+    <aside
+        class="w-48 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800 shadow-xl z-20">
+        <div class="h-12 px-3 bg-slate-950/80 flex items-center gap-2 border-b border-slate-800/80">
+            <img src="/Logo_SAP.png" alt="Logo" class="h-6 w-auto object-contain"
+                onerror="this.onerror=null; this.src='Logo_SAP.png';">
+            <h1 class="text-xs font-bold text-white tracking-wide">SAP BoB</h1>
+        </div>
+        <nav class="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
+            <div class="px-2 pb-1.5 text-[9px] font-semibold text-slate-500 uppercase tracking-wider">Modul Akuntansi
+            </div>
+            <a href="/dashboard"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>📊</span>
+                Dashboard</a>
+            <a href="/gl"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>📓</span>
+                Jurnal Umum</a>
+            <a href="/buku_besar"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>📖</span>
+                Buku Besar</a>
+
+            <div class="pt-3 border-t border-slate-800/80 mt-2">
+                <div class="px-2 pb-1.5 text-[9px] font-semibold text-emerald-500 uppercase tracking-wider">Modul Gudang
+                </div>
+                <a href="/master_barang"
+                    class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-semibold text-white bg-indigo-600/90 shadow-sm transition-all mt-0.5"><span>📦</span>
+                    Master Barang</a>
+                <a href="/inventory"
+                    class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all mt-0.5"><span>🔄</span>
+                    In/Out Gudang</a>
+            </div>
+        </nav>
+        <div class="p-2 bg-slate-950/60 border-t border-slate-800/80">
+            <button onclick="localStorage.clear(); window.location.href='/';"
+                class="w-full bg-slate-800 hover:bg-rose-600/80 text-slate-300 hover:text-white py-1.5 px-2 rounded text-[10px] font-medium transition-all flex items-center justify-center gap-1.5"><span>🚪</span>
+                Logout</button>
+        </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-100/70">
+        <header class="h-10 bg-white border-b border-slate-200/80 px-4 flex items-center shadow-xs z-10 flex-shrink-0">
+            <div class="flex items-center gap-1.5 text-[11px]">
+                <span class="text-slate-400">Inventory</span> <span class="text-slate-300">/</span>
+                <h2 class="font-semibold text-slate-800">Master Data Barang</h2>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+
+            <!-- FORM INPUT BARANG -->
+            <div class="bg-white rounded border border-slate-200 shadow-sm p-4 border-t-4 border-t-indigo-500">
+                <div class="flex justify-between items-center mb-3 border-b pb-1.5">
+                    <h3 class="font-bold text-slate-700 text-[11px] uppercase flex items-center gap-1.5"
+                        id="form-title">
+                        <span>➕</span> Tambah Barang Baru
+                    </h3>
+                    <button type="button" onclick="resetForm()"
+                        class="text-[10px] text-slate-400 hover:text-slate-600 underline">Reset Form</button>
+                </div>
+
+                <form id="formBarang" onsubmit="simpanBarang(event)">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Kode Barang <span
+                                    class="text-rose-500">*</span></label>
+                            <input type="text" id="kode_barang" required placeholder="Contoh: BRG-001"
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-[11px] outline-none focus:border-indigo-500 font-mono uppercase">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Nama Barang <span
+                                    class="text-rose-500">*</span></label>
+                            <input type="text" id="nama_barang" required placeholder="Nama produk..."
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-[11px] outline-none focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Kategori</label>
+                            <input type="text" id="kategori" placeholder="Contoh: Elektronik"
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-[11px] outline-none focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Satuan</label>
+                            <select id="satuan"
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-[11px] outline-none focus:border-indigo-500">
+                                <option value="PCS">PCS</option>
+                                <option value="KG">KG</option>
+                                <option value="BOX">BOX</option>
+                                <option value="UNIT">UNIT</option>
+                                <option value="LITER">LITER</option>
+                                <option value="METER">METER</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Harga Pokok / Beli
+                                (Rp)</label>
+                            <input type="number" id="harga_beli" value="0" min="0"
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-[11px] outline-none focus:border-indigo-500 font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Harga Jual (Rp)</label>
+                            <input type="number" id="harga_jual" value="0" min="0"
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-[11px] outline-none focus:border-indigo-500 font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Status</label>
+                            <select id="status"
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-[11px] outline-none focus:border-indigo-500">
+                                <option value="Aktif">Aktif</option>
+                                <option value="Nonaktif">Nonaktif</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Akun COA Persediaan
+                                <span class="text-rose-500">*</span></label>
+                            <select id="kode_akun_persediaan" required class="w-full">
+                                <option value="">Memuat akun...</option>
+                            </select>
+                            <p class="text-[9px] text-slate-400 mt-1">Akun ini akan otomatis didebit/dikredit saat
+                                barang masuk/keluar.</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                        <button type="button" id="btnBatal" onclick="resetForm()"
+                            class="hidden bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-1.5 rounded font-medium shadow-sm text-[11px] transition-colors">Batal
+                            Edit</button>
+                        <button type="submit" id="btnSimpan"
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded font-bold shadow-sm text-[11px] transition-colors flex items-center gap-1.5">
+                            💾 Simpan Barang
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- TABEL DAFTAR BARANG -->
+            <div
+                class="bg-white rounded border border-slate-200 shadow-sm flex-1 overflow-hidden flex flex-col min-h-[300px]">
+                <div class="px-3 py-2 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                    <span class="font-bold text-slate-700 text-[10px] uppercase">Daftar Master Barang</span>
+                </div>
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-100 text-slate-600 text-[10px] sticky top-0">
+                            <tr>
+                                <th class="py-2 px-3 border-b">Kode</th>
+                                <th class="py-2 px-3 border-b">Nama Barang</th>
+                                <th class="py-2 px-3 border-b">Kategori</th>
+                                <th class="py-2 px-3 border-b text-center">Satuan</th>
+                                <th class="py-2 px-3 border-b text-right">Harga Pokok</th>
+                                <th class="py-2 px-3 border-b text-right">Harga Jual</th>
+                                <th class="py-2 px-3 border-b text-center">COA Persediaan</th>
+                                <th class="py-2 px-3 border-b text-center">Status</th>
+                                <th class="py-2 px-3 border-b text-center w-20">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabel-barang" class="divide-y divide-slate-100 text-[11px]">
+                            <tr>
+                                <td colspan="9" class="p-4 text-center text-slate-400 italic">Memuat data barang...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const formatRp = (v) => new Intl.NumberFormat('id-ID').format(v);
+        let dataMasterBarang = [];
+        let tsAkunPersediaan;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            muatDropdownCOA();
+            muatDataBarang();
+        });
+
+        // 1. Ambil Data COA untuk Dropdown dengan Tom Select
+        async function muatDropdownCOA() {
+            try {
+                const res = await fetch('/api/coa');
+                const coaList = await res.json();
+                const selectAkun = document.getElementById('kode_akun_persediaan');
+
+                let opsiHtml = '<option value="">-- Pilih Akun Persediaan --</option>';
+                coaList.forEach(a => {
+                    const kode = a.kode_akun || a.no_akun;
+                    opsiHtml += `<option value="${kode}">${kode} - ${a.nama_akun}</option>`;
+                });
+                selectAkun.innerHTML = opsiHtml;
+
+                if (tsAkunPersediaan) tsAkunPersediaan.destroy();
+                tsAkunPersediaan = new TomSelect('#kode_akun_persediaan', {
+                    create: false,
+                    placeholder: "🔍 Cari Akun Persediaan...",
+                    sortField: { field: "text", order: "asc" }
+                });
+            } catch (err) {
+                console.error("Gagal memuat COA:", err);
+            }
+        }
+
+        // 2. Ambil Data Barang
+        async function muatDataBarang() {
+            try {
+                const res = await fetch('/api/barang');
+                dataMasterBarang = await res.json();
+
+                const tbody = document.getElementById('tabel-barang');
+                tbody.innerHTML = "";
+
+                if (dataMasterBarang.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400 italic">Belum ada data barang.</td></tr>`;
+                    return;
+                }
+
+                dataMasterBarang.forEach(b => {
+                    const warnaStatus = b.status === 'Aktif' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700';
+
+                    // Fallback cerdas: cari akun_persediaan atau kode_akun_persediaan
+                    const akunPers = b.akun_persediaan || b.kode_akun_persediaan || '1150-00';
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="py-1.5 px-3 font-mono font-bold text-indigo-700">${b.kode_barang}</td>
+                            <td class="py-1.5 px-3 font-semibold text-slate-800">${b.nama_barang}</td>
+                            <td class="py-1.5 px-3 text-slate-500">${b.kategori || '-'}</td>
+                            <td class="py-1.5 px-3 text-center text-slate-500">${b.satuan}</td>
+                            <td class="py-1.5 px-3 text-right font-mono text-slate-600">${formatRp(b.harga_beli)}</td>
+                            <td class="py-1.5 px-3 text-right font-mono text-emerald-600 font-bold">${formatRp(b.harga_jual)}</td>
+                            <td class="py-1.5 px-3 text-center font-mono text-[10px] text-blue-600 font-bold">${akunPers}</td>
+                            <td class="py-1.5 px-3 text-center"><span class="px-2 py-0.5 rounded text-[9px] font-bold ${warnaStatus}">${b.status}</span></td>
+                            <td class="py-1.5 px-3 text-center whitespace-nowrap">
+                                <button onclick="editBarang('${b.kode_barang}')" class="text-amber-600 hover:bg-amber-100 px-1.5 py-0.5 rounded transition-colors mr-1" title="Edit">✏️</button>
+                                <button onclick="hapusBarang('${b.kode_barang}')" class="text-rose-500 hover:bg-rose-100 px-1.5 py-0.5 rounded transition-colors" title="Hapus">❌</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error("Error muat barang:", err);
+            }
+        }
+
+        // 3. Simpan (Tambah/Edit)
+        async function simpanBarang(e) {
+            e.preventDefault();
+            const payload = {
+                kode_barang: document.getElementById('kode_barang').value.trim().toUpperCase(),
+                nama_barang: document.getElementById('nama_barang').value.trim(),
+                kategori: document.getElementById('kategori').value.trim() || "-",
+                satuan: document.getElementById('satuan').value,
+                harga_beli: parseFloat(document.getElementById('harga_beli').value) || 0,
+                harga_jual: parseFloat(document.getElementById('harga_jual').value) || 0,
+                kode_akun_persediaan: document.getElementById('kode_akun_persediaan').value,
+                status: document.getElementById('status').value
+            };
+
+            if (!payload.kode_akun_persediaan) return alert("Akun Persediaan wajib dipilih!");
+
+            try {
+                const res = await fetch('/api/barang', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+
+                if (res.ok) {
+                    resetForm();
+                    muatDataBarang();
+                } else {
+                    alert("Gagal menyimpan: " + result.detail);
+                }
+            } catch (err) {
+                alert("Kesalahan koneksi ke server.");
+            }
+        }
+
+        // 4. Set Form ke Mode Edit
+        function editBarang(kode) {
+            const item = dataMasterBarang.find(b => b.kode_barang === kode);
+            if (!item) return;
+
+            const inputKode = document.getElementById('kode_barang');
+            inputKode.value = item.kode_barang;
+            inputKode.readOnly = true;
+            inputKode.classList.add('bg-slate-200', 'text-slate-500', 'cursor-not-allowed');
+
+            document.getElementById('nama_barang').value = item.nama_barang;
+            document.getElementById('kategori').value = item.kategori !== '-' ? item.kategori : '';
+            document.getElementById('satuan').value = item.satuan;
+            document.getElementById('harga_beli').value = item.harga_beli;
+            document.getElementById('harga_jual').value = item.harga_jual;
+            document.getElementById('status').value = item.status;
+
+            // Ambil nilai akun yang valid saat diedit
+            const akunTerpilih = item.akun_persediaan || item.kode_akun_persediaan;
+            if (tsAkunPersediaan && akunTerpilih) {
+                tsAkunPersediaan.setValue(akunTerpilih);
+            }
+
+            document.getElementById('form-title').innerHTML = `<span>✏️</span> Edit Barang: ${item.kode_barang}`;
+            document.getElementById('btnSimpan').innerHTML = "💾 Update Barang";
+            document.getElementById('btnBatal').classList.remove('hidden');
+        }
+
+        // 5. Kembalikan Form ke Mode Tambah
+        function resetForm() {
+            document.getElementById('formBarang').reset();
+
+            const inputKode = document.getElementById('kode_barang');
+            inputKode.readOnly = false;
+            inputKode.classList.remove('bg-slate-200', 'text-slate-500', 'cursor-not-allowed');
+
+            if (tsAkunPersediaan) tsAkunPersediaan.clear();
+
+            document.getElementById('form-title').innerHTML = `<span>➕</span> Tambah Barang Baru`;
+            document.getElementById('btnSimpan').innerHTML = "💾 Simpan Barang";
+            document.getElementById('btnBatal').classList.add('hidden');
+        }
+
+        // 6. Hapus Barang
+        async function hapusBarang(kode) {
+            if (!confirm(`Yakin ingin menghapus barang dengan kode: ${kode}?`)) return;
+            try {
+                const res = await fetch(`/api/barang/${kode}`, { method: 'DELETE' });
+                if (res.ok) {
+                    muatDataBarang();
+                } else {
+                    const result = await res.json();
+                    alert("Gagal menghapus: " + result.detail);
+                }
+            } catch (err) {
+                alert("Kesalahan koneksi ke server.");
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Bill (Tagihan Masuk) - SAP BoB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tom Select (Searchable Dropdown) -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .ts-control { font-size: 11px !important; min-height: 28px !important; border-radius: 0.25rem !important; border-color: #cbd5e1 !important; }
+        .ts-dropdown { font-size: 11px !important; z-index: 50 !important; }
+    </style>
+</head>
+<body class="h-full flex overflow-hidden text-slate-700 text-xs">
+
+    <!-- SIDEBAR -->
+    <aside class="w-48 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800 shadow-xl z-20">
+        <div class="h-12 px-3 bg-slate-950/80 flex items-center gap-2 border-b border-slate-800/80">
+            <span class="text-xl">🏢</span>
+            <h1 class="text-xs font-bold text-white tracking-wide">SAP BoB</h1>
+        </div>
+        <nav class="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
+            <div class="px-2 pb-1.5 text-[9px] font-semibold text-slate-500 uppercase tracking-wider">Account Payable</div>
+            <a href="/master_vendor" class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60"><span>🚚</span> Master Vendor</a>
+            <a href="/vendor_bill" class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-semibold text-white bg-indigo-600/90 shadow-sm"><span>🧾</span> Tagihan Masuk (Bill)</a>
+            
+            <div class="pt-3 border-t border-slate-800/80 mt-2">
+                <div class="px-2 pb-1.5 text-[9px] font-semibold text-slate-500 uppercase tracking-wider">Navigasi Utama</div>
+                <a href="/dashboard" class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60"><span>📊</span> Dashboard</a>
+                <a href="/gl" class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60"><span>📓</span> Jurnal Umum</a>
+                <a href="/buku_besar" class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60"><span>📖</span> Buku Besar</a>
+            </div>
+        </nav>
+        <div class="p-2 bg-slate-950/60 border-t border-slate-800/80">
+            <button onclick="window.location.href='/dashboard'" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 py-1.5 px-2 rounded text-[10px]">Kembali</button>
+        </div>
+    </aside>
+
+    <!-- CONTENT AREA -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-100/70">
+        <header class="h-10 bg-white border-b border-slate-200 px-4 flex items-center justify-between shadow-xs z-10">
+            <div class="flex items-center gap-1.5 text-[11px]">
+                <span class="text-slate-400">Account Payable</span> <span class="text-slate-300">/</span> <h2 class="font-semibold text-slate-800">Pencatatan Tagihan Vendor (Bill)</h2>
+            </div>
+            <button type="button" onclick="resetFormBill()" class="text-indigo-600 hover:underline text-[11px] font-semibold">➕ Buat Tagihan Baru</button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-3 space-y-3">
+            
+            <!-- FORM VENDOR BILL -->
+            <div class="bg-white rounded border border-slate-200 shadow-sm p-3">
+                <form id="formBill" onsubmit="simpanBill(event)">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-2 pb-2.5 border-b border-slate-100">
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Voucher & No. Bill <span class="text-rose-500">*</span></label>
+                            <div class="flex gap-1">
+                                <select id="kode_voucher" onchange="generateSequentialBillNo()" class="w-20 bg-slate-50 border border-slate-200 rounded px-1 py-1 text-[11px] font-bold">
+                                    <option value="AP">AP</option>
+                                    <option value="JV">JV</option>
+                                </select>
+                                <input type="text" id="no_bill" required readonly placeholder="AP 202609-001" class="w-full bg-slate-100 font-mono font-bold text-indigo-700 border border-slate-200 rounded px-2 py-1 text-[11px]">
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Pilih Rekanan Vendor <span class="text-rose-500">*</span></label>
+                            <select id="select_vendor" required placeholder="Cari nama atau kode vendor..."></select>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">No. Faktur Vendor <span class="text-rose-500">*</span></label>
+                            <input type="text" id="no_faktur_vendor" required placeholder="Nomor invoice vendor" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-mono outline-none focus:border-indigo-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Akun Hutang Vendor (Prefix 21)</label>
+                            <input type="text" id="info_akun_hutang" readonly class="w-full bg-slate-100 text-slate-600 border border-slate-200 rounded px-2 py-1 text-[10px] font-mono">
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Tanggal Tagihan</label>
+                            <input type="date" id="tanggal" required onchange="generateSequentialBillNo(); hitungJatuhTempo();" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Jatuh Tempo</label>
+                            <input type="date" id="jatuh_tempo" required class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-semibold text-rose-600 outline-none">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-1">
+                            <div>
+                                <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Cabang <span class="text-rose-500">*</span></label>
+                                <select id="kode_cabang" required class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-semibold text-slate-700 outline-none focus:border-indigo-500">
+                                    <option value="">Memuat cabang...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Departemen <span class="text-rose-500">*</span></label>
+                                <select id="kode_departemen" required class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-semibold text-slate-700 outline-none focus:border-indigo-500">
+                                    <option value="">Memuat dept...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Keterangan Dokumen</label>
+                            <input type="text" id="keterangan" placeholder="Pengadaan barang / jasa..." class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                        </div>
+                    </div>
+
+                    <!-- TABEL ALOKASI BEBAN / BIAYA -->
+                    <div class="pt-2">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[10px] font-bold text-slate-700 uppercase">Alokasi Biaya / Beban / Persediaan (Sisi Debit)</span>
+                            <button type="button" onclick="tambahBarisDetail()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded text-[10px] font-semibold border border-slate-300">➕ Tambah Baris</button>
+                        </div>
+                        
+                        <div class="border border-slate-200 rounded overflow-visible">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-slate-100 text-slate-600 text-[10px]">
+                                    <tr>
+                                        <th class="py-1 px-2 border-b w-1/3">Pilih Akun Biaya / Persediaan (COA)</th>
+                                        <th class="py-1 px-2 border-b">Catatan / Rincian</th>
+                                        <th class="py-1 px-2 border-b text-right w-44">Nominal (Rp)</th>
+                                        <th class="py-1 px-2 border-b text-center w-12">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-detail" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- BAGIAN PAJAK: PPN MASUKAN & POTONGAN PPH -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3 pt-3 border-t border-slate-100 items-start">
+                        <div class="bg-slate-50 border border-slate-200 rounded p-2.5 space-y-2">
+                            <span class="text-[10px] font-bold text-slate-700 uppercase block border-b pb-1">Pengaturan Perpajakan (Search COA)</span>
+                            
+                            <!-- PPN Masukan -->
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-1.5 items-center">
+                                <label class="text-[10px] font-semibold text-slate-600 md:col-span-3">PPN Masukan (Debit):</label>
+                                <div class="md:col-span-6">
+                                    <select id="select_ppn_coa" placeholder="Cari akun PPN Masukan..."></select>
+                                </div>
+                                <div class="md:col-span-3">
+                                    <input type="number" id="ppn_nominal" value="0" min="0" oninput="hitungKalkulasiAkhir()" placeholder="Nominal Rp" class="w-full bg-white border border-slate-200 rounded px-2 py-1 text-[11px] font-mono text-right outline-none">
+                                </div>
+                            </div>
+
+                            <!-- Potongan PPh -->
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-1.5 items-center pt-1 border-t border-slate-200/60">
+                                <div class="md:col-span-3">
+                                    <select id="jenis_pph" class="w-full bg-white border border-slate-200 rounded px-1 py-1 text-[10px] font-semibold outline-none">
+                                        <option value="">-- Tanpa Potongan PPh --</option>
+                                        <option value="PPH Ps. 4 (2)">PPH Ps. 4 (2)</option>
+                                        <option value="PPH Ps. 21">PPH Ps. 21</option>
+                                        <option value="PPH Ps. 22">PPH Ps. 22</option>
+                                        <option value="PPH Ps. 23">PPH Ps. 23</option>
+                                        <option value="PPH Ps. 26">PPH Ps. 26</option>
+                                    </select>
+                                </div>
+                                <div class="md:col-span-6">
+                                    <select id="select_pph_coa" placeholder="Cari akun Hutang PPh..."></select>
+                                </div>
+                                <div class="md:col-span-3">
+                                    <input type="number" id="pph_nominal" value="0" min="0" oninput="hitungKalkulasiAkhir()" placeholder="Potongan Rp" class="w-full bg-white border border-slate-200 rounded px-2 py-1 text-[11px] font-mono text-right outline-none text-rose-600 font-bold">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RINGKASAN REKAP HUTANG -->
+                        <div class="bg-white border border-slate-200 rounded p-2.5 space-y-1 font-mono text-right shadow-xs">
+                            <div class="flex justify-between text-slate-500 text-[11px]">
+                                <span>Subtotal Beban/Barang:</span>
+                                <span id="lbl_subtotal" class="font-bold text-slate-700">Rp 0</span>
+                            </div>
+                            <div class="flex justify-between text-slate-500 text-[11px]">
+                                <span>(+) PPN Masukan:</span>
+                                <span id="lbl_ppn" class="font-bold text-slate-700">Rp 0</span>
+                            </div>
+                            <div class="flex justify-between text-rose-600 text-[11px]">
+                                <span>(-) Potongan PPh:</span>
+                                <span id="lbl_pph" class="font-bold">Rp 0</span>
+                            </div>
+                            <div class="flex justify-between text-xs text-indigo-700 font-bold border-t pt-1.5 mt-1">
+                                <span class="font-sans uppercase text-[10px]">Total Hutang ke Vendor (AP):</span>
+                                <span id="lbl_total" class="text-sm">Rp 0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-3 border-t border-slate-100 mt-3">
+                        <button type="button" onclick="bukaModalDraftBill()" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-3 py-1 rounded text-[11px] font-bold border border-amber-300 flex items-center gap-1">
+                            📂 Buka Draft AP
+                        <button type="button" onclick="resetFormBill()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1 rounded text-[11px]">Reset Form</button>
+                        <button type="submit" id="btnSimpanBill" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-1.5 rounded text-[11px] font-bold shadow-sm">
+                            🚀 Ajukan Tagihan (Kirim ke Posting Pending)
+                        </button>
+                        
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+
+            <!-- TABEL DAFTAR TAGIHAN -->
+            <div class="bg-white rounded border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[30vh]">
+                <div class="px-3 py-1.5 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                    <span class="font-bold text-slate-600 text-[10px] uppercase">Daftar Tagihan Hutang Vendor (Open AP)</span>
+                    <button type="button" onclick="muatDaftarBill()" class="text-indigo-600 hover:underline text-[10px]">🔄 Segarkan</button>
+                </div>
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-100 text-slate-600 text-[10px] sticky top-0 z-10">
+                            <tr>
+                                <th class="py-2 px-2 border-b">No. Bill</th>
+                                <th class="py-2 px-2 border-b">Faktur Vendor</th>
+                                <th class="py-2 px-2 border-b">Rekanan Vendor</th>
+                                <th class="py-2 px-2 border-b">Tanggal</th>
+                                <th class="py-2 px-2 border-b">Jatuh Tempo</th>
+                                <th class="py-2 px-2 border-b text-right">Total Tagihan</th>
+                                <th class="py-2 px-2 border-b text-right">Sisa Hutang</th>
+                                <th class="py-2 px-2 border-b text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabel-bill-body" class="divide-y divide-slate-100 text-[11px]">
+                            <tr><td colspan="8" class="py-6 text-center text-slate-400 italic">Memuat data tagihan...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        const formatRp = (v) => new Intl.NumberFormat('id-ID').format(v || 0);
+        
+        let listVendor = [];
+        let listCOA = [];
+        let tsVendor = null;
+        let tsPPN = null;
+        let tsPPh = null;
+        let tsBarisDetail = {};
+        let counterBaris = 0;
+
+        // ==========================================
+        // 1. INISIALISASI HALAMAN
+        // ==========================================
+        document.addEventListener("DOMContentLoaded", async () => {
+            const elTgl = document.getElementById('tanggal');
+            if (elTgl) elTgl.value = new Date().toISOString().split('T')[0];
+
+            // Muat nomor bill urut
+            await generateSequentialBillNo();
+            await muatCabangDanDept();
+            await muatDataVendor();
+            await muatDataCOA();
+
+            // Baris input awal untuk alokasi biaya
+            tambahBarisDetail();
+        });
+
+        // ==========================================
+        // 2. NOMOR BUKTI BILL BERURUTAN (AP YYYYMM-XXX)
+        // ==========================================
+        async function generateSequentialBillNo() {
+            const elVoucher = document.getElementById('kode_voucher');
+            const elTgl = document.getElementById('tanggal');
+            if (!elVoucher || !elTgl || !elTgl.value) return;
+
+            const voucher = elVoucher.value;
+            const tgl = elTgl.value;
+
+            try {
+                const res = await fetch(`/api/vendor_bill/next-no?voucher=${encodeURIComponent(voucher)}&tanggal=${encodeURIComponent(tgl)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.next_no) {
+                        document.getElementById('no_bill').value = data.next_no;
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn("Gagal auto-generate nomor bill dari server:", e);
+            }
+
+            // Fallback jika API belum aktif
+            const ym = tgl.replace(/-/g, '').slice(0, 6);
+            document.getElementById('no_bill').value = `${voucher} ${ym}-001`;
+        }
+
+        // ==========================================
+        // 3. MUAT MASTER VENDOR (DROPDOWN SEARCH)
+        // ==========================================
+        async function muatDataVendor() {
+            const selV = document.getElementById('select_vendor');
+            if (!selV) return;
+
+            try {
+                const res = await fetch('/api/vendor');
+                if (res.ok) {
+                    listVendor = await res.json();
+                }
+            } catch (e) {
+                console.error("Gagal fetch vendor:", e);
+                listVendor = [];
+            }
+
+            selV.innerHTML = '<option value="">-- Cari Nama / Kode Vendor --</option>';
+            if (listVendor.length === 0) {
+                selV.innerHTML = '<option value="">(Belum Ada Vendor - Daftarkan di Master Vendor)</option>';
+            } else {
+                listVendor.forEach(v => {
+                    selV.innerHTML += `<option value="${v.kode_vendor}">${v.kode_vendor} - ${v.nama_vendor}</option>`;
+                });
+            }
+
+            // Inisialisasi Tom Select Vendor
+            try {
+                if (tsVendor) tsVendor.destroy();
+                tsVendor = new TomSelect('#select_vendor', {
+                    create: false,
+                    maxOptions: null,
+                    placeholder: "🔍 Ketik Kode atau Nama Vendor...",
+                    sortField: { field: "text", order: "asc" },
+                    searchField: ['text', 'value'],
+                    onChange: onVendorDipilih
+                });
+            } catch (errTS) {
+                console.warn("Tom Select Vendor fallback ke select biasa:", errTS);
+                selV.onchange = (e) => onVendorDipilih(e.target.value);
+            }
+        }
+
+        function onVendorDipilih(kodeVendor) {
+            const v = listVendor.find(item => item.kode_vendor === kodeVendor);
+            const elHutang = document.getElementById('info_akun_hutang');
+            if (v) {
+                if (elHutang) elHutang.value = `${v.kode_akun_hutang} - ${v.nama_akun_hutang}`;
+                hitungJatuhTempo(v.termin_hari || 30);
+            } else {
+                if (elHutang) elHutang.value = "";
+            }
+        }
+
+        function hitungJatuhTempo(terminParam) {
+            const tglVal = document.getElementById('tanggal').value;
+            if (!tglVal) return;
+
+            let termin = terminParam;
+            if (termin === undefined) {
+                const kodeVendor = tsVendor ? tsVendor.getValue() : document.getElementById('select_vendor').value;
+                const v = listVendor.find(item => item.kode_vendor === kodeVendor);
+                termin = v ? (v.termin_hari || 0) : 30;
+            }
+
+            const tgl = new Date(tglVal);
+            tgl.setDate(tgl.getDate() + parseInt(termin || 0));
+            const elJatuhTempo = document.getElementById('jatuh_tempo');
+            if (elJatuhTempo) elJatuhTempo.value = tgl.toISOString().split('T')[0];
+        }
+
+        // ==========================================
+        // 4. MUAT MASTER COA (PPN, PPH, DETAIL BEBAN)
+        // ==========================================
+        async function muatDataCOA() {
+            try {
+                const res = await fetch('/api/coa');
+                if (res.ok) {
+                    listCOA = await res.json();
+                }
+            } catch (e) {
+                console.error("Gagal fetch COA:", e);
+                listCOA = [];
+            }
+
+            // A. Dropdown PPN Masukan
+            const selPPN = document.getElementById('select_ppn_coa');
+            if (selPPN) {
+                selPPN.innerHTML = '<option value="">-- Pilih Akun PPN Masukan --</option>';
+                listCOA.forEach(c => {
+                    const kode = c.kode || c.kode_akun || c.no_akun;
+                    const nama = (c.nama || c.nama_akun || '').trim();
+                    selPPN.innerHTML += `<option value="${kode}">${kode} - ${nama}</option>`;
+                });
+
+                try {
+                    if (tsPPN) tsPPN.destroy();
+                    tsPPN = new TomSelect('#select_ppn_coa', {
+                        create: false,
+                        maxOptions: null,
+                        placeholder: "🔍 Cari Akun PPN Masukan...",
+                        sortField: { field: "text", order: "asc" },
+                        searchField: ['text', 'value']
+                    });
+                } catch (err) {
+                    console.warn("Tom Select PPN fallback:", err);
+                }
+            }
+
+            // B. Dropdown Hutang PPh
+            const selPPh = document.getElementById('select_pph_coa');
+            if (selPPh) {
+                selPPh.innerHTML = '<option value="">-- Pilih Akun Hutang PPh --</option>';
+                listCOA.forEach(c => {
+                    const kode = c.kode || c.kode_akun || c.no_akun;
+                    const nama = (c.nama || c.nama_akun || '').trim();
+                    selPPh.innerHTML += `<option value="${kode}">${kode} - ${nama}</option>`;
+                });
+
+                try {
+                    if (tsPPh) tsPPh.destroy();
+                    tsPPh = new TomSelect('#select_pph_coa', {
+                        create: false,
+                        maxOptions: null,
+                        placeholder: "🔍 Cari Akun Hutang PPh...",
+                        sortField: { field: "text", order: "asc" },
+                        searchField: ['text', 'value']
+                    });
+                } catch (err) {
+                    console.warn("Tom Select PPh fallback:", err);
+                }
+            }
+        }
+
+        // ==========================================
+        // 5. BARIS ALOKASI BEBAN / BIAYA DINAMIS
+        // ==========================================
+        function tambahBarisDetail() {
+            counterBaris++;
+            const idBaris = `row-${counterBaris}`;
+            const idSelect = `akun-detail-${counterBaris}`;
+            const tbody = document.getElementById('tbody-detail');
+            if (!tbody) return;
+
+            let opsiCoa = '<option value="">-- Pilih / Ketik Akun Beban --</option>';
+            listCOA.forEach(c => {
+                const kode = c.kode || c.kode_akun || c.no_akun;
+                const nama = (c.nama || c.nama_akun || '').trim();
+                opsiCoa += `<option value="${kode}">${kode} - ${nama}</option>`;
+            });
+
+            const tr = document.createElement('tr');
+            tr.id = idBaris;
+            tr.className = "hover:bg-slate-50";
+            tr.innerHTML = `
+                <td class="p-1">
+                    <select id="${idSelect}">${opsiCoa}</select>
+                </td>
+                <td class="p-1">
+                    <input type="text" id="desc-${counterBaris}" placeholder="Rincian beban / barang" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                </td>
+                <td class="p-1">
+                    <input type="number" id="nom-${counterBaris}" value="0" min="0" oninput="hitungKalkulasiAkhir()" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-mono text-right outline-none">
+                </td>
+                <td class="p-1 text-center">
+                    <button type="button" onclick="hapusBaris('${idBaris}', '${idSelect}')" class="text-rose-600 hover:bg-rose-50 px-1 py-0.5 rounded">❌</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+
+            // Aktifkan pencarian Tom Select pada baris yang baru dibuat
+            try {
+                tsBarisDetail[idSelect] = new TomSelect(`#${idSelect}`, {
+                    create: false,
+                    maxOptions: null,
+                    placeholder: "🔍 Ketik Kode atau Nama Beban...",
+                    sortField: { field: "text", order: "asc" },
+                    searchField: ['text', 'value']
+                });
+            } catch (e) {
+                console.warn("Tom Select detail row fallback:", e);
+            }
+        }
+
+        function hapusBaris(idRow, idSelect) {
+            if (tsBarisDetail[idSelect]) {
+                try { tsBarisDetail[idSelect].destroy(); } catch (e) {}
+                delete tsBarisDetail[idSelect];
+            }
+            const el = document.getElementById(idRow);
+            if (el) el.remove();
+            hitungKalkulasiAkhir();
+        }
+
+        // ==========================================
+        // 6. KALKULASI REAL-TIME
+        // ==========================================
+        function hitungKalkulasiAkhir() {
+            let subtotal = 0;
+            const rows = document.getElementById('tbody-detail')?.children || [];
+            for (let r of rows) {
+                const inputNom = r.querySelector("input[type='number']");
+                if (inputNom) subtotal += parseFloat(inputNom.value) || 0;
+            }
+
+            const ppn = parseFloat(document.getElementById('ppn_nominal')?.value) || 0;
+            const pph = parseFloat(document.getElementById('pph_nominal')?.value) || 0;
+            const totalHutangVendor = (subtotal + ppn) - pph;
+
+            const elSub = document.getElementById('lbl_subtotal');
+            const elPpn = document.getElementById('lbl_ppn');
+            const elPph = document.getElementById('lbl_pph');
+            const elTot = document.getElementById('lbl_total');
+
+            if (elSub) elSub.innerText = `Rp ${formatRp(subtotal)}`;
+            if (elPpn) elPpn.innerText = `Rp ${formatRp(ppn)}`;
+            if (elPph) elPph.innerText = `Rp ${formatRp(pph)}`;
+            if (elTot) elTot.innerText = `Rp ${formatRp(totalHutangVendor)}`;
+        }
+
+        // ==========================================
+        // 7. SIMPAN VENDOR BILL (STATUS PENDING)
+        // ==========================================
+        async function simpanBill(e) {
+            e.preventDefault();
+
+            const kodeVendor = tsVendor ? tsVendor.getValue() : document.getElementById('select_vendor').value;
+            if (!kodeVendor) {
+                return alert("⚠️ Silakan pilih rekanan Vendor terlebih dahulu!");
+            }
+
+            const rows = document.getElementById('tbody-detail')?.children || [];
+            if (rows.length === 0) return alert("Tambahkan minimal 1 baris alokasi biaya/persediaan!");
+
+            const detailItems = [];
+            for (let r of rows) {
+                const sel = r.querySelector("select");
+                const valAkun = tsBarisDetail[sel.id] ? tsBarisDetail[sel.id].getValue() : sel.value;
+                const desc = r.querySelector("input[type='text']").value;
+                const nom = parseFloat(r.querySelector("input[type='number']").value) || 0;
+
+                if (!valAkun || nom <= 0) continue;
+
+                const coaObj = listCOA.find(c => (c.kode || c.kode_akun || c.no_akun) === valAkun);
+                detailItems.push({
+                    kode_akun: valAkun,
+                    nama_akun: coaObj ? (coaObj.nama || coaObj.nama_akun) : "Beban Usaha",
+                    deskripsi: desc,
+                    nominal: nom
+                });
+            }
+
+            if (detailItems.length === 0) {
+                return alert("Pilih akun COA dan isi nominal pada baris rincian beban!");
+            }
+
+            const ppnNom = parseFloat(document.getElementById('ppn_nominal').value) || 0;
+            const pphNom = parseFloat(document.getElementById('pph_nominal').value) || 0;
+            const akunPPN = tsPPN ? tsPPN.getValue() : document.getElementById('select_ppn_coa').value;
+            const jenisPPh = document.getElementById('jenis_pph').value;
+            const akunPPh = tsPPh ? tsPPh.getValue() : document.getElementById('select_pph_coa').value;
+
+            if (ppnNom > 0 && !akunPPN) {
+                return alert("Nilai PPN Masukan diisi, silakan pilih Akun PPN Masukan dari COA!");
+            }
+            if (pphNom > 0 && (!jenisPPh || !akunPPh)) {
+                return alert("Potongan PPh diisi, silakan tentukan Jenis PPh dan Akun Hutang PPh dari COA!");
+            }
+
+            const btn = document.getElementById('btnSimpanBill');
+            const origBtnText = btn.innerHTML;
+            btn.innerHTML = "⏳ Mengirim ke Posting Pending...";
+            btn.disabled = true;
+
+            const payload = {
+                kode_voucher: document.getElementById('kode_voucher').value || "AP",
+                no_bill: document.getElementById('no_bill').value,
+                no_faktur_vendor: document.getElementById('no_faktur_vendor').value.trim(),
+                tanggal: document.getElementById('tanggal').value,
+                jatuh_tempo: document.getElementById('jatuh_tempo').value,
+                kode_vendor: kodeVendor,
+                kode_cabang: document.getElementById('kode_cabang').value.trim() || "HO",
+                kode_departemen: document.getElementById('kode_departemen').value.trim() || "FIN",
+                keterangan: document.getElementById('keterangan').value.trim() || "-",
+                kode_akun_ppn: akunPPN,
+                ppn_nominal: ppnNom,
+                jenis_pph: jenisPPh,
+                kode_akun_pph: akunPPh,
+                pph_nominal: pphNom,
+                pembuat: "FIN_AP",
+                detail: detailItems
+            };
+
+            try {
+                const res = await fetch('/api/vendor_bill', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const resJson = await res.json();
+
+                if (res.ok) {
+                    alert("🎉 " + resJson.pesan);
+                    resetFormBill();
+                } else {
+                    alert("❌ Gagal Simpan: " + (resJson.detail || "Terjadi kesalahan sistem."));
+                }
+            } catch (err) {
+                alert("Kesalahan koneksi ke server.");
+            } finally {
+                btn.innerHTML = origBtnText;
+                btn.disabled = false;
+            }
+        }
+
+        function resetFormBill() {
+            Object.keys(tsBarisDetail).forEach(id => {
+                if (tsBarisDetail[id]) {
+                    try { tsBarisDetail[id].destroy(); } catch (e) {}
+                }
+            });
+            tsBarisDetail = {};
+
+            document.getElementById('formBill').reset();
+            if (tsVendor) tsVendor.clear();
+            if (tsPPN) tsPPN.clear();
+            if (tsPPh) tsPPh.clear();
+
+            document.getElementById('info_akun_hutang').value = "";
+            document.getElementById('tbody-detail').innerHTML = "";
+            document.getElementById('tanggal').value = new Date().toISOString().split('T')[0];
+
+            generateSequentialBillNo();
+            tambahBarisDetail();
+            hitungKalkulasiAkhir();
+        }
+
+        async function muatCabangDanDept() {
+            // 1. Muat Dropdown Cabang
+            try {
+                const resCbg = await fetch('/api/cabang');
+                const listCbg = await resCbg.json();
+                const selCbg = document.getElementById('kode_cabang');
+                
+                if (listCbg && listCbg.length > 0) {
+                    selCbg.innerHTML = listCbg.map(c => 
+                        `<option value="${c.kode}">${c.kode} - ${c.nama}</option>`
+                    ).join('');
+                } else {
+                    selCbg.innerHTML = '<option value="HO" selected>HO - Head Office</option>';
+                }
+            } catch (e) {
+                console.warn("Gagal fetch cabang, gunakan fallback HO:", e);
+                document.getElementById('kode_cabang').innerHTML = '<option value="HO" selected>HO - Head Office</option>';
+            }
+
+            // 2. Muat Dropdown Departemen
+            try {
+                const resDept = await fetch('/api/departemen');
+                const listDept = await resDept.json();
+                const selDept = document.getElementById('kode_departemen');
+                
+                if (listDept && listDept.length > 0) {
+                    selDept.innerHTML = listDept.map(d => 
+                        `<option value="${d.kode}">${d.kode} - ${d.nama}</option>`
+                    ).join('');
+                } else {
+                    selDept.innerHTML = `
+                        <option value="FIN" selected>FIN - Keuangan & Akuntansi</option>
+                        <option value="LOG">LOG - Logistik & Gudang</option>
+                        <option value="HRD">HRD - SDM & Umum</option>
+                        <option value="MKT">MKT - Pemasaran</option>
+                    `;
+                }
+            } catch (e) {
+                console.warn("Gagal fetch departemen, gunakan fallback:", e);
+                document.getElementById('kode_departemen').innerHTML = '<option value="FIN" selected>FIN - Keuangan & Akuntansi</option>';
+            }
+        }
+
+        // MEMBUKA MODAL DAFTAR DRAFT AP
+        async function bukaModalDraftBill() {
+            document.getElementById('modal-draft-bill').classList.remove('hidden');
+            const tbody = document.getElementById('tabel-draft-bill-body');
+            tbody.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-slate-400 italic">Memuat draft tagihan...</td></tr>';
+
+            try {
+                const res = await fetch('/api/vendor_bill');
+                const bills = await res.json();
+                const drafts = bills.filter(b => b.status === "Draft");
+                tbody.innerHTML = "";
+
+                if (drafts.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-slate-400 italic">Tidak ada draft tagihan yang tertolak.</td></tr>';
+                    return;
+                }
+
+                drafts.forEach(d => {
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-amber-50/50 transition">
+                            <td class="py-1.5 px-2 font-mono font-bold text-amber-800">${d.no_bill}</td>
+                            <td class="py-1.5 px-2 text-slate-700">${d.nama_vendor}</td>
+                            <td class="py-1.5 px-2 text-right font-mono font-bold text-slate-800">Rp ${formatRp(d.total_tagihan)}</td>
+                            <td class="py-1.5 px-2 text-center">
+                                <button onclick="muatDraftKeForm('${d.no_bill}')" class="bg-amber-500 hover:bg-amber-600 text-white px-2 py-0.5 rounded text-[10px] font-bold shadow-xs">
+                                    ✏️ Edit
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-rose-500">Gagal memuat data draft.</td></tr>';
+            }
+        }
+
+        function tutupModalDraftBill() {
+            document.getElementById('modal-draft-bill').classList.add('hidden');
+        }
+
+        // MEMUAT DETAIL DRAFT KE DALAM FORM
+        async function muatDraftKeForm(noBill) {
+            try {
+                const res = await fetch(`/api/vendor_bill/detail/${encodeURIComponent(noBill)}`);
+                const data = await res.json();
+                if (!res.ok) return alert("Gagal mengambil detail draft.");
+
+                const h = data.header;
+                document.getElementById('no_bill').value = h.no_bill;
+                document.getElementById('kode_voucher').value = h.kode_voucher || "AP";
+                document.getElementById('no_faktur_vendor').value = h.no_faktur_vendor;
+                document.getElementById('tanggal').value = h.tanggal;
+                document.getElementById('jatuh_tempo').value = h.jatuh_tempo;
+                document.getElementById('kode_cabang').value = h.kode_cabang;
+                document.getElementById('kode_departemen').value = h.kode_departemen;
+                document.getElementById('keterangan').value = h.keterangan;
+
+                if (document.getElementById('kode_cabang')) {
+                    document.getElementById('kode_cabang').value = h.kode_cabang || "HO";
+                }
+                if (document.getElementById('kode_departemen')) {
+                    document.getElementById('kode_departemen').value = h.kode_departemen || "FIN";
+                }
+
+                if (tsVendor) tsVendor.setValue(h.kode_vendor);
+                if (tsPPN && h.kode_akun_ppn) tsPPN.setValue(h.kode_akun_ppn);
+                document.getElementById('ppn_nominal').value = h.ppn_nominal || 0;
+
+                // Kosongkan baris detail lama
+                Object.keys(tsBarisDetail).forEach(id => {
+                    if (tsBarisDetail[id]) try { tsBarisDetail[id].destroy(); } catch (e) {}
+                });
+                tsBarisDetail = {};
+                document.getElementById('tbody-detail').innerHTML = "";
+                counterBaris = 0;
+
+                // Render baris rincian draft
+                data.detail.forEach(d => {
+                    tambahBarisDetail();
+                    const currentSelectId = `akun-detail-${counterBaris}`;
+                    if (tsBarisDetail[currentSelectId]) {
+                        tsBarisDetail[currentSelectId].setValue(d.kode_akun);
+                    }
+                    document.getElementById(`desc-${counterBaris}`).value = d.deskripsi;
+                    document.getElementById(`nom-${counterBaris}`).value = d.nominal;
+                });
+
+                hitungKalkulasiAkhir();
+                tutupModalDraftBill();
+                alert(`📂 Draft ${h.no_bill} berhasil dimuat ke formulir! Silakan perbaiki dan klik '🚀 Ajukan Tagihan'.`);
+            } catch (e) {
+                alert("Gagal memuat draft ke form.");
+            }
+        }
+
+    </script>
+    <!-- MODAL BUKA DRAFT AP -->
+    <div id="modal-draft-bill" class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50 p-4">
+        <div class="bg-white w-full max-w-xl rounded-lg shadow-xl overflow-hidden flex flex-col max-h-[80vh]">
+            <div class="bg-amber-500 p-3 text-white flex justify-between items-center">
+                <h3 class="font-bold text-xs uppercase flex items-center gap-1.5">📂 Daftar Draft Tagihan AP (Ditolak / Belum Diajukan)</h3>
+                <button onclick="tutupModalDraftBill()" class="text-white hover:bg-amber-600 px-2 py-0.5 rounded font-bold">&times;</button>
+            </div>
+            <div class="p-3 overflow-y-auto flex-1">
+                <table class="w-full text-left border-collapse text-[11px]">
+                    <thead class="bg-slate-100 text-slate-600 text-[10px] sticky top-0">
+                        <tr>
+                            <th class="py-1.5 px-2 border-b">No. Bill</th>
+                            <th class="py-1.5 px-2 border-b">Vendor</th>
+                            <th class="py-1.5 px-2 border-b text-right">Total</th>
+                            <th class="py-1.5 px-2 border-b text-center w-20">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel-draft-bill-body" class="divide-y divide-slate-100">
+                        <tr><td colspan="4" class="py-4 text-center text-slate-400 italic">Memuat draft...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-2.5 bg-slate-50 border-t border-slate-200 flex justify-end">
+                <button onclick="tutupModalDraftBill()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded text-[11px] font-semibold">Tutup</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fixed Asset & Penyusutan - SAP BoB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- SheetJS (Excel) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <!-- Tom Select (Searchable COA) -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
+    <script src="/role_akses.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .ts-control {
+            padding: 4px 8px !important;
+            font-size: 11px !important;
+            border-color: #e2e8f0 !important;
+            background-color: #f8fafc !important;
+            border-radius: 0.25rem !important;
+            min-height: 28px !important;
+        }
+
+        .ts-dropdown,
+        .ts-dropdown .option {
+            font-size: 11px !important;
+        }
+
+        .ts-wrapper.single .ts-control:after {
+            right: 8px;
+        }
+
+        /* PENGAMAN MODAL AGAR TIDAK TERSEMBUNYI OLEH CSS WORKSPACE */
+        .erp-modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.65) !important;
+            display: flex !important;
+        }
+
+        .erp-modal-backdrop.hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body class="h-full flex overflow-hidden text-slate-700 text-xs">
+
+    <!-- CONTENT UTAMA -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-100/70">
+        <header
+            class="h-10 bg-white border-b border-slate-200/80 px-4 flex items-center justify-between shadow-xs z-10 flex-shrink-0">
+            <div class="flex items-center gap-1.5 text-[11px]">
+                <h2 class="font-semibold text-slate-800">Manajemen Aset Tetap</h2>
+            </div>
+            <div class="flex items-center gap-2">
+                <input type="file" id="inputExcelAsset" accept=".xlsx, .xls" class="hidden"
+                    onchange="eksekusiImportAsset(event)">
+
+                <button type="button" onclick="downloadTemplateAssetExcel()"
+                    class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-[10px] font-semibold px-2.5 py-1 rounded transition flex items-center gap-1 cursor-pointer">
+                    📑 Template
+                </button>
+                <button type="button" onclick="document.getElementById('inputExcelAsset').click()"
+                    class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold px-2.5 py-1 rounded shadow-xs flex items-center gap-1 cursor-pointer">
+                    📥 Import Excel
+                </button>
+                <button type="button" onclick="bukaModalPilihAsetDispose()"
+                    class="bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold px-3 py-1 rounded shadow-xs flex items-center gap-1 cursor-pointer">
+                    🏷️ Dispose / Jual Aset
+                </button>
+                <button type="button" onclick="bukaModalRiwayatPenyusutan()"
+                    class="bg-slate-700 hover:bg-slate-800 text-white text-[10px] font-bold px-3 py-1 rounded shadow-xs flex items-center gap-1 cursor-pointer">
+                    📋 Riwayat Voucher
+                </button>
+                <button type="button" onclick="bukaModalDepresiasi()"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold px-3 py-1 rounded shadow-xs flex items-center gap-1 cursor-pointer">
+                    ⚡ Posting Penyusutan
+                </button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-3 space-y-3">
+            <!-- FORM PENDAFTARAN ASET BARU -->
+            <div class="bg-white rounded border border-slate-200 shadow-sm p-3">
+                <h3 class="font-bold text-slate-700 text-[11px] uppercase mb-2 border-b pb-1">➕ Penambahan Aset Baru
+                </h3>
+                <form id="formAsset" onsubmit="simpanAssetBaru(event)" class="space-y-2">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Kode Aset</label>
+                            <input type="text" id="kode_aset" required placeholder="Contoh: FA-001"
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Nama Aset</label>
+                            <input type="text" id="nama_aset" required placeholder="Contoh: Laptop Dell XPS Maker"
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Cabang</label>
+                            <select id="kode_cabang"
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                                <option value="HO">HO - Kantor Pusat</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Departemen</label>
+                            <select id="kode_departemen"
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                                <option value="FIN">FIN - Keuangan</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Golongan Fiskal
+                                Perpajakan</label>
+                            <select id="golongan_fiskal" onchange="sesuaikanMasaManfaat()"
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                                <option value="GOL1">Golongan 1 (4 Tahun - 25%/Thn)</option>
+                                <option value="GOL2">Golongan 2 (8 Tahun - 12.5%/Thn)</option>
+                                <option value="GOL3">Golongan 3 (16 Tahun - 6.25%/Thn)</option>
+                                <option value="GOL4">Golongan 4 (20 Tahun - 5%/Thn)</option>
+                                <option value="BG_PERMANEN">Bangunan Permanen (20 Tahun - 5%/Thn)</option>
+                                <option value="BG_NON">Bangunan Non-Permanen (10 Tahun - 10%/Thn)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Tanggal
+                                Perolehan</label>
+                            <input type="date" id="tgl_perolehan" required
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Harga Perolehan
+                                (Rp)</label>
+                            <input type="number" id="harga_perolehan" required min="0" placeholder="0"
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Nilai Residu
+                                (Rp)</label>
+                            <input type="number" id="nilai_residu" value="0" min="0"
+                                class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Akun Aset (Debit
+                                Perolehan)</label>
+                            <select id="akun_aset" required class="w-full">
+                                <option value="">Memuat akun...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Akun Akumulasi
+                                Penyusutan (Kredit)</label>
+                            <select id="akun_akumulasi" required class="w-full">
+                                <option value="">Memuat akun...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Akun Beban Penyusutan
+                                (Debit Bulanan)</label>
+                            <select id="akun_beban" required class="w-full">
+                                <option value="">Memuat akun...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex justify-end pt-2">
+                        <button type="submit"
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-1.5 rounded text-[11px] shadow-xs cursor-pointer">
+                            💾 Simpan & Daftarkan Aset
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- 1. MODAL DEPRESIASI RUN (PENYUSUTAN) -->
+    <div id="modal-depresiasi" class="fixed inset-0 z-50 flex items-center justify-center erp-modal-backdrop hidden">
+        <div class="bg-white rounded-lg shadow-2xl border border-slate-200 w-full max-w-sm overflow-hidden mx-4">
+            <div class="bg-slate-800 px-4 py-2.5 flex justify-between items-center text-white">
+                <h3 class="font-semibold text-xs flex items-center gap-1.5">⚡ Depreciation Run</h3>
+                <button type="button" onclick="tutupModalDepresiasi()"
+                    class="text-slate-400 hover:text-white leading-none cursor-pointer">&times;</button>
+            </div>
+            <div class="p-4 space-y-3">
+                <p class="text-slate-600 text-[11px]">Sistem akan menghitung beban penyusutan garis lurus pada periode
+                    bulan terpilih dan langsung memposting jurnal voucher (ADJ) ke Buku Besar.</p>
+                <div>
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Pilih Periode Bulan</label>
+                    <input type="month" id="dep_bulan"
+                        class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs outline-none">
+                </div>
+                <div class="flex justify-end gap-1.5 pt-2 border-t">
+                    <button type="button" onclick="tutupModalDepresiasi()"
+                        class="bg-slate-100 text-slate-600 px-3 py-1 rounded text-[11px] cursor-pointer">Batal</button>
+                    <button type="button" onclick="eksekusiDepresiasi()"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1 rounded text-[11px] cursor-pointer">Jalankan
+                        Penyusutan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. MODAL RIWAYAT VOUCHER PENYUSUTAN -->
+    <div id="modal-riwayat-penyusutan"
+        class="fixed inset-0 z-50 flex items-center justify-center erp-modal-backdrop hidden">
+        <div
+            class="bg-white rounded-lg shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden mx-4 flex flex-col max-h-[85vh]">
+            <div class="bg-slate-800 px-4 py-2.5 flex justify-between items-center text-white">
+                <h3 class="font-semibold text-xs flex items-center gap-1.5">📋 Riwayat Jurnal Penyusutan (Voucher ADJ)
+                </h3>
+                <button type="button" onclick="tutupModalRiwayatPenyusutan()"
+                    class="text-slate-400 hover:text-white leading-none text-lg cursor-pointer">&times;</button>
+            </div>
+            <div class="p-3 overflow-y-auto flex-1">
+                <table class="w-full text-left border-collapse text-[11px]">
+                    <thead class="bg-slate-100 text-slate-600 text-[10px] sticky top-0">
+                        <tr>
+                            <th class="p-2 border-b">No Referensi</th>
+                            <th class="p-2 border-b">Tanggal</th>
+                            <th class="p-2 border-b text-right">Nominal (Rp)</th>
+                            <th class="p-2 border-b text-center">Status</th>
+                            <th class="p-2 border-b text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel-riwayat-adj-body" class="divide-y divide-slate-100">
+                        <tr>
+                            <td colspan="5" class="p-4 text-center text-slate-400 italic">Memuat riwayat...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="bg-slate-50 px-4 py-2.5 border-t border-slate-200 flex justify-end">
+                <button type="button" onclick="tutupModalRiwayatPenyusutan()"
+                    class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-1.5 rounded text-[11px] font-semibold cursor-pointer">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. MODAL DISPOSABLE ASSET (PENJUALAN / PELEPASAN ASET TETAP) -->
+    <div id="modal-dispose" class="fixed inset-0 z-50 flex items-center justify-center erp-modal-backdrop hidden">
+        <div class="bg-white rounded-lg shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden mx-4">
+            <div class="bg-rose-700 px-4 py-2.5 flex justify-between items-center text-white">
+                <h3 class="font-semibold text-xs flex items-center gap-1.5">🏷️ Pelepasan / Penjualan Aset Tetap</h3>
+                <button type="button" onclick="tutupModalDispose()"
+                    class="text-white hover:text-rose-200 leading-none cursor-pointer">&times;</button>
+            </div>
+            <form id="formDispose" onsubmit="eksekusiDisposeAsset(event)" class="p-4 space-y-2.5">
+                <div class="bg-rose-50 border border-rose-200 rounded p-2 text-[10px] text-rose-800">
+                    ⚠️ Aset yang telah dilepas/dijual akan berstatus <b>Disposed</b> dan <b>tidak akan pernah disusutkan
+                        lagi</b>. Jurnal pelepasan otomatis diterbitkan.
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-[11px] bg-slate-50 p-2 rounded border border-slate-200">
+                    <div>Kode Aset: <span id="disp_kode_aset" class="font-mono font-bold text-indigo-700"></span></div>
+                    <div>Nilai Buku: <span id="disp_nilai_buku" class="font-mono font-bold text-emerald-600"></span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Tanggal
+                        Penjualan/Pelepasan</label>
+                    <input type="date" id="disp_tanggal" required
+                        class="w-full bg-slate-50 border border-slate-200 rounded px-2.5 py-1 text-xs outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Harga Jual Riil (Rp)</label>
+                    <input type="number" id="disp_harga_jual" required min="0" placeholder="0 jika dibuang/rusak"
+                        class="w-full bg-slate-50 border border-slate-200 rounded px-2.5 py-1 text-xs outline-none font-mono">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Akun Kas / Bank (Penerimaan
+                        Penjualan)</label>
+                    <select id="disp_akun_kas" required class="w-full">
+                        <option value="">Pilih Akun Kas...</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Akun Laba / Rugi Pelepasan Aset
+                        (Kepala 7/8)</label>
+                    <select id="disp_akun_lr" required class="w-full">
+                        <option value="">Pilih Akun Laba/Rugi Pelepasan...</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Keterangan / Catatan
+                        Penjualan</label>
+                    <input type="text" id="disp_keterangan" value="Penjualan unit aset operasional" required
+                        class="w-full bg-slate-50 border border-slate-200 rounded px-2.5 py-1 text-xs outline-none">
+                </div>
+
+                <div class="pt-2 flex justify-end gap-1.5 border-t">
+                    <button type="button" onclick="tutupModalDispose()"
+                        class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1 rounded text-[11px]">Batal</button>
+                    <button type="submit"
+                        class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-4 py-1 rounded text-[11px] shadow-xs">
+                        🏷️ Konfirmasi Pelepasan Aset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- LOGIKA JAVASCRIPT -->
+    <script>
+        const formatRp = (v) => new Intl.NumberFormat('id-ID').format(v);
+        let rawMasterAsset = [];
+        let tsAkunAset, tsAkunAkumulasi, tsAkunBeban, tsDispKas, tsDispLR;
+        let selectedAssetToDispose = null;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById('tgl_perolehan').valueAsDate = new Date();
+            document.getElementById('dep_bulan').value = new Date().toISOString().slice(0, 7);
+            document.getElementById('disp_tanggal').valueAsDate = new Date();
+
+            muatDropdownCOA();
+            muatDataAset();
+        });
+
+        // 1. MUAT DAFTAR COA KE SEMUA TOM-SELECT
+        async function muatDropdownCOA() {
+            try {
+                const res = await fetch('/api/coa');
+                const coaList = await res.json();
+
+                let opsiHtml = '<option value="">-- Pilih / Ketik Akun --</option>';
+                coaList.forEach(a => {
+                    const kode = a.no_akun || a.kode || a.kode_akun;
+                    const nama = (a.nama_akun || a.nama || '').trim();
+                    opsiHtml += `<option value="${kode}">${kode} - ${nama}</option>`;
+                });
+
+                document.getElementById('akun_aset').innerHTML = opsiHtml;
+                document.getElementById('akun_akumulasi').innerHTML = opsiHtml;
+                document.getElementById('akun_beban').innerHTML = opsiHtml;
+                document.getElementById('disp_akun_kas').innerHTML = opsiHtml;
+                document.getElementById('disp_akun_lr').innerHTML = opsiHtml;
+
+                const configTS = { create: false, placeholder: "🔍 Cari Akun...", sortField: { field: "text", order: "asc" } };
+
+                if (tsAkunAset) tsAkunAset.destroy();
+                if (tsAkunAkumulasi) tsAkunAkumulasi.destroy();
+                if (tsAkunBeban) tsAkunBeban.destroy();
+                if (tsDispKas) tsDispKas.destroy();
+                if (tsDispLR) tsDispLR.destroy();
+
+                tsAkunAset = new TomSelect('#akun_aset', configTS);
+                tsAkunAkumulasi = new TomSelect('#akun_akumulasi', configTS);
+                tsAkunBeban = new TomSelect('#akun_beban', configTS);
+                tsDispKas = new TomSelect('#disp_akun_kas', configTS);
+                tsDispLR = new TomSelect('#disp_akun_lr', configTS);
+            } catch (err) {
+                console.error("Gagal load COA:", err);
+            }
+        }
+
+        function sesuaikanMasaManfaat() {
+            const gol = document.getElementById('golongan_fiskal').value;
+            if (gol === 'GOL1') return 48;
+            if (gol === 'GOL2') return 96;
+            if (gol === 'GOL3') return 192;
+            if (gol === 'GOL4' || gol === 'BG_PERMANEN') return 240;
+            if (gol === 'BG_NON') return 120;
+            return 48;
+        }
+
+        // 2. MUAT DATA REGISTER ASET
+        async function muatDataAset() {
+            try {
+                const res = await fetch('/api/fixed_assets');
+                rawMasterAsset = await res.json();
+                renderTabelAset(rawMasterAsset);
+            } catch (e) {
+                console.error("Gagal muat aset:", e);
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            muatCabangDanDept();
+        });
+
+        async function muatCabangDanDept() {
+            try {
+                const [resCbg, resDept] = await Promise.all([
+                    fetch('/api/cabang'),
+                    fetch('/api/departemen')
+                ]);
+                const listCbg = await resCbg.json();
+                const listDept = await resDept.json();
+
+                // 1. Dropdown Form Register Baru
+                const selCbg = document.getElementById('kode_cabang');
+                const selDept = document.getElementById('kode_departemen');
+                if (selCbg && listCbg.length) {
+                    selCbg.innerHTML = listCbg.map(c => `<option value="${c.kode}">${c.kode} - ${c.nama}</option>`).join('');
+                }
+                if (selDept && listDept.length) {
+                    selDept.innerHTML = listDept.map(d => `<option value="${d.kode}">${d.kode} - ${d.nama}</option>`).join('');
+                }
+
+                // 2. Dropdown Modal Dispose
+                const selDispCbg = document.getElementById('disp_cabang');
+                const selDispDept = document.getElementById('disp_dept');
+                if (selDispCbg && listCbg.length) {
+                    selDispCbg.innerHTML = listCbg.map(c => `<option value="${c.kode}">${c.kode} - ${c.nama}</option>`).join('');
+                }
+                if (selDispDept && listDept.length) {
+                    selDispDept.innerHTML = listDept.map(d => `<option value="${d.kode}">${d.kode} - ${d.nama}</option>`).join('');
+                }
+            } catch (err) {
+                console.error("Gagal muat cabang/dept:", err);
+            }
+        }
+
+
+        // 3. RENDER TABEL DENGAN LABEL DISPOSED & TOMBOL AKSI
+        function renderTabelAset(data) {
+            const tbody = document.getElementById('tabel-aset-body');
+            tbody.innerHTML = "";
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="p-6 text-center text-slate-400 italic">Tidak ada data aset tetap.</td></tr>';
+                document.getElementById('total_harga_perolehan').innerText = "0";
+                document.getElementById('total_akum_penyusutan').innerText = "0";
+                document.getElementById('total_nilai_buku').innerText = "0";
+                return;
+            }
+
+            let totHarga = 0, totAkum = 0, totBuku = 0;
+
+            data.forEach(a => {
+                totHarga += a.harga_perolehan;
+                totAkum += a.akumulasi_penyusutan;
+                totBuku += a.nilai_buku;
+
+                let badgeStatus = '';
+                let btnAksi = '';
+
+                if (a.status === "Disposed") {
+                    badgeStatus = `<span class="px-2 py-0.5 bg-rose-100 text-rose-800 rounded text-[9px] font-bold">🚫 DISPOSED</span>`;
+                    btnAksi = `<span class="text-[10px] text-slate-400 italic">Telah Dijual</span>`;
+                } else if (a.status === "Pending Disposal") {
+                    badgeStatus = `<span class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-[9px] font-bold">⏳ PENDING DISPOSAL</span>`;
+                    btnAksi = `<span class="text-[10px] text-amber-600 font-semibold italic">Menunggu Approval</span>`;
+                } else {
+                    badgeStatus = `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[9px] font-bold">✅ AKTIF</span>`;
+                    btnAksi = `<button onclick='bukaModalDispose(${JSON.stringify(a)})' class="bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-300 px-2 py-0.5 rounded text-[10px] font-semibold transition cursor-pointer">🏷️ Jual / Dispose</button>`;
+                }
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition ${isDisposed ? 'bg-slate-50/70 text-slate-400' : ''}">
+                        <td class="p-2 font-mono font-bold ${isDisposed ? 'text-slate-500 line-through' : 'text-indigo-700'}">${a.kode_aset}</td>
+                        <td class="p-2 font-semibold ${isDisposed ? 'text-slate-500 line-through' : 'text-slate-800'}">${a.nama_aset}</td>
+                        <td class="p-2 font-mono text-slate-500">${a.tgl_perolehan}</td>
+                        <td class="p-2"><span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded font-semibold text-[9px]">${a.golongan_fiskal}</span></td>
+                        <td class="p-2 text-right font-mono font-bold text-slate-800">${formatRp(a.harga_perolehan)}</td>
+                        <td class="p-2 text-right font-mono text-rose-600">${formatRp(a.akumulasi_penyusutan)}</td>
+                        <td class="p-2 text-right font-mono text-emerald-600 font-bold">${formatRp(a.nilai_buku)}</td>
+                        <td class="p-2 text-center">${badgeStatus}</td>
+                        <td class="p-2 text-center">${btnAksi}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('total_harga_perolehan').innerText = formatRp(totHarga);
+            document.getElementById('total_akum_penyusutan').innerText = formatRp(totAkum);
+            document.getElementById('total_nilai_buku').innerText = formatRp(totBuku);
+        }
+
+        // 4. FILTER PENCARIAN REAL-TIME
+        function filterTabelAset() {
+            const keyword = document.getElementById('cari_aset').value.toLowerCase().trim();
+            if (!keyword) {
+                renderTabelAset(rawMasterAsset);
+                return;
+            }
+            const hasilFilter = rawMasterAsset.filter(a =>
+                a.kode_aset.toLowerCase().includes(keyword) ||
+                a.nama_aset.toLowerCase().includes(keyword) ||
+                a.golongan_fiskal.toLowerCase().includes(keyword) ||
+                a.status.toLowerCase().includes(keyword) ||
+                a.tgl_perolehan.includes(keyword)
+            );
+            renderTabelAset(hasilFilter);
+        }
+
+        // 5. SIMPAN MANUAL ASET
+        async function simpanAssetBaru(e) {
+            e.preventDefault();
+            const akunAsetVal = document.getElementById('akun_aset').value;
+            const akunAkumulasiVal = document.getElementById('akun_akumulasi').value;
+            const akunBebanVal = document.getElementById('akun_beban').value;
+
+            if (!akunAsetVal || !akunAkumulasiVal || !akunBebanVal) {
+                return alert("Harap lengkapi semua pilihan akun COA!");
+            }
+
+            const payload = {
+                kode_aset: document.getElementById('kode_aset').value.trim(),
+                nama_aset: document.getElementById('nama_aset').value.trim(),
+                golongan_fiskal: document.getElementById('golongan_fiskal').value,
+                tgl_perolehan: document.getElementById('tgl_perolehan').value,
+                harga_perolehan: parseFloat(document.getElementById('harga_perolehan').value) || 0,
+                nilai_residu: parseFloat(document.getElementById('nilai_residu').value) || 0,
+                masa_manfaat_bulan: sesuaikanMasaManfaat(),
+                akun_aset: akunAsetVal,
+                akun_akumulasi: akunAkumulasiVal,
+                akun_beban: akunBebanVal
+            };
+
+            try {
+                const res = await fetch('/api/fixed_assets', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+
+                if (res.ok) {
+                    alert("✅ " + result.pesan);
+                    document.getElementById('formAsset').reset();
+                    if (tsAkunAset) tsAkunAset.clear();
+                    if (tsAkunAkumulasi) tsAkunAkumulasi.clear();
+                    if (tsAkunBeban) tsAkunBeban.clear();
+                    muatDataAset();
+                } else {
+                    alert("❌ " + result.detail);
+                }
+            } catch (err) {
+                alert("Kesalahan koneksi ke server.");
+            }
+        }
+
+        // 6. MODAL & EKSEKUSI DISPOSABLE ASSET (PENJUALAN)
+        // Membuka modal pelepasan aset dengan pengisian data aman
+        window.bukaModalDispose = function(aset) {
+            selectedAssetToDispose = aset;
+
+            const elKode = document.getElementById('disp_kode_aset');
+            const elNb = document.getElementById('disp_nilai_buku');
+            const elHrg = document.getElementById('disp_harga_jual');
+            const elTgl = document.getElementById('disp_tanggal');
+
+            if (elKode) elKode.innerText = `${aset.kode_aset} - ${aset.nama_aset}`;
+            if (elNb) elNb.innerText = `Rp ${formatRp(aset.nilai_buku || 0)}`;
+            if (elHrg) elHrg.value = aset.nilai_buku || 0;
+            if (elTgl) elTgl.valueAsDate = new Date();
+
+            // Set nilai Cabang dan Departemen aset asal
+            const selCbg = document.getElementById('disp_cabang');
+            const selDept = document.getElementById('disp_dept');
+            if (selCbg) selCbg.value = aset.kode_cabang || "HO";
+            if (selDept) selDept.value = aset.kode_departemen || "FIN";
+
+            // Kosongkan pilihan Tom Select sebelumnya
+            if (tsDispKas) tsDispKas.clear();
+            if (tsDispLR) tsDispLR.clear();
+
+            const modal = document.getElementById('modal-dispose');
+            if (modal) modal.classList.remove('hidden');
+        };
+
+        window.tutupModalDispose = function() {
+            const modal = document.getElementById('modal-dispose');
+            if (modal) modal.classList.add('hidden');
+            selectedAssetToDispose = null;
+        };
+
+        // Eksekusi pelepasan aset dengan pembacaan Tom Select yang aman
+        window.eksekusiDisposeAsset = async function(e) {
+            e.preventDefault();
+
+            if (!selectedAssetToDispose) {
+                alert("⚠️ Data aset yang akan dilepas tidak valid. Silakan pilih ulang aset.");
+                return;
+            }
+
+            // Ambil nilai melalui instance Tom Select atau fallback ke elemen reguler
+            const akunKas = tsDispKas ? tsDispKas.getValue() : document.getElementById('disp_akun_kas')?.value;
+            const akunLR = tsDispLR ? tsDispLR.getValue() : document.getElementById('disp_akun_lr')?.value;
+            const cabang = document.getElementById('disp_cabang')?.value || selectedAssetToDispose.kode_cabang || "HO";
+            const dept = document.getElementById('disp_dept')?.value || selectedAssetToDispose.kode_departemen || "FIN";
+
+            if (!akunKas) {
+                alert("⚠️ Harap pilih Akun Kas / Bank penerimaan penjualan!");
+                return;
+            }
+            if (!akunLR) {
+                alert("⚠️ Harap pilih Akun Laba / Rugi Pelepasan Aset!");
+                return;
+            }
+
+            const tglJual = document.getElementById('disp_tanggal').value;
+            const hrgJual = parseFloat(document.getElementById('disp_harga_jual').value) || 0;
+            const keterangan = document.getElementById('disp_keterangan').value.trim() || "Pelepasan Aset Tetap";
+
+            const konfirmasi = confirm(
+                `Konfirmasi Pelepasan Aset:\n\n` +
+                `• Kode Aset: ${selectedAssetToDispose.kode_aset}\n` +
+                `• Nama Aset: ${selectedAssetToDispose.nama_aset}\n` +
+                `• Nilai Buku: Rp ${formatRp(selectedAssetToDispose.nilai_buku || 0)}\n` +
+                `• Harga Jual: Rp ${formatRp(hrgJual)}\n\n` +
+                `Jurnal pembalikan aset dan akumulasi akan otomatis dibuat di Buku Besar. Lanjutkan?`
+            );
+            if (!konfirmasi) return;
+
+            const btnSubmit = e.target.querySelector('button[type="submit"]');
+            const teksAsal = btnSubmit ? btnSubmit.innerHTML : "";
+            if (btnSubmit) {
+                btnSubmit.innerHTML = "⏳ Memproses Jurnal...";
+                btnSubmit.disabled = true;
+            }
+
+            const payload = {
+                kode_aset: selectedAssetToDispose.kode_aset,
+                tgl_penjualan: tglJual,
+                harga_jual: hrgJual,
+                akun_kas: akunKas,
+                akun_laba_rugi: akunLR,
+                kode_cabang: cabang,
+                kode_departemen: dept,
+                keterangan: keterangan
+            };
+
+            try {
+                const res = await fetch('/api/fixed_assets/dispose', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await res.json();
+
+                if (res.ok) {
+                    alert("🎉 " + result.pesan);
+                    window.tutupModalDispose();
+                    await muatDataAset(); // Segarkan data tabel
+                } else {
+                    alert("❌ GAGAL DISPOSE:\n" + (result.detail || "Terjadi kesalahan di server."));
+                }
+            } catch (err) {
+                alert("⚠️ Gagal terhubung ke server. Periksa koneksi backend Anda.");
+            } finally {
+                if (btnSubmit) {
+                    btnSubmit.innerHTML = teksAsal;
+                    btnSubmit.disabled = false;
+                }
+            }
+        };
+
+        // Membuka modal pelepasan langsung dari tombol header
+        function bukaModalPilihAsetDispose() {
+            // Filter hanya aset yang masih aktif (belum disposed)
+            const asetAktif = rawMasterAsset.filter(a => a.status !== "Disposed");
+
+            if (asetAktif.length === 0) {
+                return alert("Tidak ada aset aktif yang tersedia untuk dijual/dilepas.");
+            }
+
+            // Buat prompt sederhana atau ambil aset pertama sebagai target awal
+            const daftarPilihan = asetAktif.map((a, i) => `${i + 1}. [${a.kode_aset}] ${a.nama_aset} (Nilai Buku: Rp ${formatRp(a.nilai_buku)})`).join('\n');
+            const pilihanIndex = prompt(`PILIH NOMOR ASET YANG INGIN DIJUAL/DILEPAS:\n\n${daftarPilihan}\n\nMasukkan nomor urut (1 - ${asetAktif.length}):`);
+
+            if (!pilihanIndex) return;
+
+            const idx = parseInt(pilihanIndex, 10) - 1;
+            if (isNaN(idx) || idx < 0 || idx >= asetAktif.length) {
+                return alert("Nomor urut tidak valid!");
+            }
+
+            // Buka modal dispose dengan data aset yang dipilih
+            bukaModalDispose(asetAktif[idx]);
+        }
+
+        // 7. MODAL RIWAYAT PENYUSUTAN
+        window.bukaModalRiwayatPenyusutan = async function () {
+            const modal = document.getElementById('modal-riwayat-penyusutan');
+            if (modal) modal.classList.remove('hidden');
+
+            const tbody = document.getElementById('tabel-riwayat-adj-body');
+            tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400 italic">Memuat riwayat...</td></tr>';
+
+            try {
+                const res = await fetch(`/api/fixed_assets/riwayat-penyusutan?_t=${Date.now()}`);
+                const adjJurnals = await res.json();
+
+                tbody.innerHTML = "";
+                if (!adjJurnals || adjJurnals.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400 italic">Belum ada jurnal penyusutan yang diposting.</td></tr>';
+                    return;
+                }
+
+                adjJurnals.forEach(j => {
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 border-b border-slate-100">
+                            <td class="p-2 font-mono font-bold text-indigo-700">${j.no_referensi}</td>
+                            <td class="p-2 font-mono text-slate-600">${j.tanggal}</td>
+                            <td class="p-2 text-right font-mono font-bold text-emerald-600">${formatRp(j.total_debit)}</td>
+                            <td class="p-2 text-center">
+                                <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700">${j.status}</span>
+                            </td>
+                            <td class="p-2 text-center">
+                                <button type="button" onclick="window.open('/cetak_jurnal?ref=${encodeURIComponent(j.no_referensi)}', '_blank')" 
+                                        class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-2 py-0.5 rounded text-[10px] font-semibold inline-flex items-center gap-1 cursor-pointer">
+                                    🖨️ Cetak Voucher
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-rose-500">Gagal memuat data riwayat penyusutan.</td></tr>';
+            }
+        };
+
+        window.tutupModalRiwayatPenyusutan = function () {
+            const modal = document.getElementById('modal-riwayat-penyusutan');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        // 8. MODAL DEPRESIASI RUN
+        window.bukaModalDepresiasi = function () { document.getElementById('modal-depresiasi').classList.remove('hidden'); };
+        window.tutupModalDepresiasi = function () { document.getElementById('modal-depresiasi').classList.add('hidden'); };
+
+        window.eksekusiDepresiasi = async function () {
+            const bulan = document.getElementById('dep_bulan').value;
+            if (!confirm(`Jalankan penyusutan untuk periode ${bulan}? Jurnal penyesuaian otomatis akan dibuat.`)) return;
+
+            try {
+                const res = await fetch('/api/fixed_assets/depreciation-run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ periode_bulan: bulan, kode_cabang: "SEMUA" })
+                });
+                const result = await res.json();
+                if (res.ok) {
+                    alert("⚡ " + result.pesan);
+                    window.tutupModalDepresiasi();
+                    muatDataAset();
+                } else {
+                    alert("❌ Gagal: " + result.detail);
+                }
+            } catch (err) {
+                alert("Gagal memproses penyusutan.");
+            }
+        };
+
+        // 9. EXPORT EXCEL
+        function eksekusiExportAsset() {
+            if (!rawMasterAsset || rawMasterAsset.length === 0) return alert("Tidak ada data aset untuk diekspor!");
+            const excelRows = [["Kode Aset", "Nama Aset", "Tgl Perolehan", "Golongan Fiskal", "Harga Perolehan", "Akum. Penyusutan", "Nilai Buku", "Status"]];
+            let sumHarga = 0, sumAkum = 0, sumBuku = 0;
+            rawMasterAsset.forEach(a => {
+                const hrg = Number(a.harga_perolehan) || 0;
+                const akm = Number(a.akumulasi_penyusutan) || 0;
+                const nbk = Number(a.nilai_buku) || 0;
+                sumHarga += hrg; sumAkum += akm; sumBuku += nbk;
+                excelRows.push([a.kode_aset, a.nama_aset, a.tgl_perolehan, a.golongan_fiskal, hrg, akm, nbk, a.status]);
+            });
+            excelRows.push(["TOTAL", "", "", "", sumHarga, sumAkum, sumBuku, ""]);
+            const ws = XLSX.utils.aoa_to_sheet(excelRows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Fixed Assets");
+            XLSX.writeFile(wb, `Register_Fixed_Asset_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+
+        function downloadTemplateAssetExcel() {
+            const template = [
+                ["Kode Aset", "Nama Aset", "Golongan Fiskal", "Tgl Perolehan", "Harga Perolehan", "Akumulasi Penyusutan Awal", "Nilai Residu", "Masa Manfaat Bulan", "Akun Aset", "Akun Akumulasi", "Akun Beban"],
+                ["FA-001", "Laptop Dell Latitude", "GOL1", "2024-01-15", 15000000, 3750000, 0, 48, "123000", "123500", "618000"]
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(template);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Template Aset");
+            XLSX.writeFile(wb, "Template_Import_Fixed_Asset.xlsx");
+        }
+
+        async function eksekusiImportAsset(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function (evt) {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+                    if (rows.length === 0) return alert("File kosong!");
+
+                    const getCol = (row, ...keys) => {
+                        const rowKeys = Object.keys(row);
+                        for (let k of keys) {
+                            const clean = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+                            const found = rowKeys.find(x => x.toLowerCase().replace(/[^a-z0-9]/g, '') === clean);
+                            if (found && row[found] !== "") return String(row[found]).trim();
+                        }
+                        return "";
+                    };
+
+                    const payloadData = rows.map(r => ({
+                        kode_aset: getCol(r, "kodeaset", "kode", "noaset"),
+                        nama_aset: getCol(r, "namaaset", "nama", "deskripsi"),
+                        golongan_fiskal: (getCol(r, "golonganfiskal", "golongan", "gol") || "GOL1").toUpperCase(),
+                        tgl_perolehan: getCol(r, "tglperolehan", "tanggal", "tgl") || "2024-01-01",
+                        harga_perolehan: parseFloat(String(getCol(r, "hargaperolehan", "harga") || "0").replace(/,/g, '')) || 0,
+                        akumulasi_penyusutan: parseFloat(String(getCol(r, "akumulasipenyusutanawal", "akumulasi") || "0").replace(/,/g, '')) || 0,
+                        nilai_residu: parseFloat(String(getCol(r, "nilairesidu", "residu") || "0").replace(/,/g, '')) || 0,
+                        masa_manfaat_bulan: 48,
+                        akun_aset: getCol(r, "akunaset", "akun aset") || "123000",
+                        akun_akumulasi: getCol(r, "akunakumulasi", "akun akumulasi") || "123500",
+                        akun_beban: getCol(r, "akunbeban", "akun beban") || "618000"
+                    })).filter(x => x.kode_aset && x.nama_aset);
+
+                    const res = await fetch('/api/fixed_assets/bulk-import', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payloadData)
+                    });
+                    const resJson = await res.json();
+                    if (res.ok) {
+                        alert("🎉 " + resJson.pesan);
+                        muatDataAset();
+                    } else {
+                        alert("❌ " + resJson.detail);
+                    }
+                } catch (err) {
+                    alert("Error: " + err.message);
+                } finally {
+                    e.target.value = "";
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Tombol ESC untuk tutup semua modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                tutupModalDispose();
+                window.tutupModalRiwayatPenyusutan();
+                window.tutupModalDepresiasi();
+            }
+        });
+    </script>
+</body>
+
+</html>

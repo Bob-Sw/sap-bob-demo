@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Posting Jurnal - Modul SAP BoB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/role_akses.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        const rawRole = localStorage.getItem('role') || '';
+        const role = rawRole.trim().toLowerCase();
+
+        if (!role) {
+            window.location.replace('/');
+        } else if (role !== 'approver' && role !== 'super_user') {
+            alert("⛔ AKSES DITOLAK: Anda tidak memiliki wewenang untuk membuka menu Persetujuan/Posting.");
+            window.location.replace('/dashboard');
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body class="h-full flex overflow-hidden text-slate-700 text-xs">
+
+    <aside
+        class="w-48 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800 shadow-xl z-20">
+        <div class="h-12 px-3 bg-slate-950/80 flex items-center gap-2 border-b border-slate-800/80">
+            <img src="/Logo_SAP.png" alt="Logo SAP" class="h-6 w-auto object-contain"
+                onerror="this.onerror=null; this.src='Logo_SAP.png';">
+            <h1 class="text-xs font-bold text-white tracking-wide">SAP BoB</h1>
+        </div>
+        <nav class="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
+            <div class="px-2 pb-1.5 text-[9px] font-semibold text-slate-500 uppercase tracking-wider">Modul Akuntansi
+            </div>
+            <a href="/dashboard"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>📊</span>
+                Dashboard</a>
+            <a href="/gl"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>📓</span>
+                Jurnal Umum</a>
+            <a href="/posting" id="menu-posting"
+                class="flex items-center justify-between px-2 py-1.5 rounded text-[11px] font-semibold text-white bg-indigo-600/90 shadow-sm transition-all">
+                <div class="flex items-center gap-2"><span>✅</span> Posting Pending</div>
+            </a>
+            <a href="/buku_besar"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>📖</span>
+                Buku Besar</a>
+
+            </div>
+        </nav>
+        <div class="p-2 bg-slate-950/60 border-t border-slate-800/80">
+            <button onclick="localStorage.clear(); window.location.href='/';"
+                class="w-full bg-slate-800 hover:bg-rose-600/80 text-slate-300 hover:text-white py-1.5 px-2 rounded text-[10px] font-medium transition-all flex items-center justify-center gap-1.5"><span>🚪</span>
+                Logout</button>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-100/70 relative">
+        <header
+            class="h-10 bg-white border-b border-slate-200/80 px-4 flex items-center justify-between shadow-xs z-10 flex-shrink-0">
+            <div class="flex items-center gap-1.5 text-[11px]">
+                <span class="text-slate-400">Akuntansi</span> <span class="text-slate-300">/</span>
+                <h2 class="font-semibold text-slate-800">Persetujuan Jurnal</h2>
+            </div>
+            <button onclick="muatJurnalPending(true)"
+                class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-2.5 py-1 rounded text-[10px] font-semibold transition-colors border border-indigo-200">
+                🔄 Segarkan Data
+            </button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4">
+            <div class="bg-white rounded border border-slate-200 shadow-sm flex flex-col h-full">
+                <div class="px-3 py-2 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                    <span class="font-bold text-slate-600 text-[10px] uppercase tracking-wider">Antrean Jurnal
+                        (Pending)</span>
+                </div>
+                <div class="overflow-auto flex-1">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-100 text-slate-500 text-[10px] sticky top-0 z-10">
+                            <tr>
+                                <th class="py-1.5 px-3 border-b border-slate-200 font-semibold">No Referensi</th>
+                                <th class="py-1.5 px-3 border-b border-slate-200 font-semibold">Tanggal</th>
+                                <th class="py-1.5 px-3 border-b border-slate-200 font-semibold">Voucher</th>
+                                <th class="py-1.5 px-3 border-b border-slate-200 font-semibold text-center">Status</th>
+                                <th class="py-1.5 px-3 border-b border-slate-200 font-semibold text-center w-24">Aksi
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabel-pending-body" class="divide-y divide-slate-100 text-[11px]">
+                            <tr>
+                                <td colspan="5" class="py-8 text-center text-slate-400 italic">Memuat data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL REVIEW (KEBAL DARI CSS WORKSPACE) -->
+        <div id="modal-review"
+            class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-xs hidden no-print">
+            <div
+                class="bg-white rounded-lg shadow-2xl border border-slate-200 w-full max-w-3xl flex flex-col max-h-[85vh] mx-4 overflow-hidden">
+                <div class="bg-slate-800 px-4 py-2.5 flex justify-between items-center flex-shrink-0 text-white">
+                    <h3 class="font-semibold text-xs flex items-center gap-2">🔍 Review Jurnal: <span id="modal-noref"
+                            class="text-amber-400 font-mono"></span></h3>
+                    <button onclick="tutupModal()"
+                        class="text-slate-400 hover:text-white text-lg leading-none">&times;</button>
+                </div>
+
+                <div class="p-4 overflow-y-auto flex-1 bg-slate-50/50">
+                    <div class="grid grid-cols-3 gap-2 mb-3 bg-white p-2.5 rounded border border-slate-200 text-[11px]">
+                        <p class="text-slate-500">Tanggal: <span id="modal-tgl"
+                                class="font-bold text-slate-800 ml-1"></span></p>
+                        <p class="text-slate-500">Cabang: <span id="modal-cabang"
+                                class="font-bold text-indigo-600 ml-1"></span></p>
+                        <p class="text-slate-500">Departemen: <span id="modal-dept"
+                                class="font-bold text-indigo-600 ml-1"></span></p>
+                    </div>
+
+                    <div class="border border-slate-200 rounded overflow-hidden">
+                        <table class="w-full text-left text-[11px] border-collapse">
+                            <thead class="bg-slate-100 text-slate-600">
+                                <tr>
+                                    <th class="p-2 border-b font-semibold">Akun</th>
+                                    <th class="p-2 border-b font-semibold">Keterangan</th>
+                                    <th class="p-2 border-b font-semibold text-right">Debit (Rp)</th>
+                                    <th class="p-2 border-b font-semibold text-right">Kredit (Rp)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modal-tabel-body" class="bg-white divide-y divide-slate-100"></tbody>
+                            <tfoot class="bg-slate-50 font-bold text-slate-700 border-t-2 border-slate-200">
+                                <tr>
+                                    <td colspan="2" class="p-2 text-right uppercase text-[10px]">Total:</td>
+                                    <td id="modal-tot-deb" class="p-2 text-right text-emerald-600 font-mono">0</td>
+                                    <td id="modal-tot-kre" class="p-2 text-right text-rose-600 font-mono">0</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div
+                    class="bg-slate-100 px-4 py-3 border-t border-slate-200 flex justify-between items-center flex-shrink-0">
+                    <button onclick="tutupModal()"
+                        class="text-slate-600 hover:text-slate-800 font-medium px-3 py-1.5 text-[11px] bg-white border border-slate-300 rounded shadow-xs">
+                        Tutup
+                    </button>
+                    <div class="flex gap-2">
+                        <button id="btn-hapus"
+                            class="bg-rose-600 hover:bg-rose-700 text-white font-medium py-1.5 px-3 rounded text-[11px] shadow-sm transition-colors flex items-center gap-1">
+                            🗑️ Hapus Jurnal
+                        </button>
+                        <button id="btn-tolak"
+                            class="bg-amber-600 hover:bg-amber-700 text-white font-medium py-1.5 px-3 rounded text-[11px] shadow-sm transition-colors flex items-center gap-1">
+                            ↩️ Tolak ke Draft
+                        </button>
+                        <button id="btn-setujui"
+                            class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-4 rounded text-[11px] shadow-sm transition-colors flex items-center gap-1">
+                            ✅ Approve & Posting
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Sembunyikan menu Setup System dari Approver
+        document.addEventListener("DOMContentLoaded", () => {
+            if (localStorage.getItem('role') !== 'super_user') {
+                const setupSection = document.getElementById('section-setup-system');
+                if (setupSection) setupSection.style.display = 'none';
+            }
+        });
+
+        const formatRp = (angka) => new Intl.NumberFormat('id-ID').format(angka);
+
+        async function muatJurnalPending(isManual = false) {
+            const btn = document.querySelector("header button");
+            if (isManual && btn) { btn.disabled = true; btn.innerText = "⏳ Memuat..."; }
+
+            try {
+                const res = await fetch(`/api/jurnal/pending?_t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
+                const data = await res.json();
+                const tbody = document.getElementById("tabel-pending-body");
+                tbody.innerHTML = "";
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-emerald-600 font-medium italic">Tidak ada jurnal pending.</td></tr>';
+                } else {
+                    data.forEach(j => {
+                        tbody.innerHTML += `
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="py-1.5 px-3 font-mono font-semibold text-indigo-700">${j.no_referensi}</td>
+                                <td class="py-1.5 px-3 text-slate-600">${j.tanggal}</td>
+                                <td class="py-1.5 px-3 text-slate-600">${j.kode_voucher}</td>
+                                <td class="py-1.5 px-3 text-center"><span class="bg-amber-100 text-amber-700 text-[9px] font-bold px-2 py-0.5 rounded">PENDING</span></td>
+                                <td class="py-1.5 px-3 text-center">
+                                    <button onclick="bukaReview('${j.no_referensi}')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-1 px-2 rounded text-[10px] shadow-sm transition-colors">🔍 Review</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (e) { alert("Gagal memuat data."); }
+            finally { if (btn) { btn.disabled = false; btn.innerText = "🔄 Segarkan Data"; } }
+        }
+
+        window.bukaReview = async function (noRef) {
+            try {
+                const res = await fetch(`/api/jurnal/detail/${encodeURIComponent(noRef)}?_t=${Date.now()}`);
+                const data = await res.json();
+
+                if (res.ok) {
+                    document.getElementById('modal-noref').innerText = data.no_referensi;
+                    document.getElementById('modal-tgl').innerText = data.tanggal;
+                    document.getElementById('modal-cabang').innerText = data.kode_cabang || "HO";
+                    document.getElementById('modal-dept').innerText = data.kode_departemen || "FIN";
+
+                    const tbody = document.getElementById('modal-tabel-body');
+                    tbody.innerHTML = "";
+                    let tDeb = 0, tKre = 0;
+
+                    data.detail.forEach(b => {
+                        tDeb += b.debit;
+                        tKre += b.kredit;
+                        tbody.innerHTML += `
+                            <tr class="hover:bg-slate-50">
+                                <td class="p-2 font-mono text-indigo-700">${b.kode_akun} - ${b.nama_akun}</td>
+                                <td class="p-2 text-slate-600">${b.keterangan || '-'}</td>
+                                <td class="p-2 text-right font-mono text-emerald-600">${formatRp(b.debit)}</td>
+                                <td class="p-2 text-right font-mono text-rose-600">${formatRp(b.kredit)}</td>
+                            </tr>
+                        `;
+                    });
+
+                    document.getElementById('modal-tot-deb').innerText = formatRp(tDeb);
+                    document.getElementById('modal-tot-kre').innerText = formatRp(tKre);
+
+                    // Pasang aksi tombol modal
+                    document.getElementById('btn-setujui').onclick = () => postingJurnal(noRef);
+                    document.getElementById('btn-tolak').onclick = () => tolakJurnal(noRef);
+                    document.getElementById('btn-hapus').onclick = () => hapusJurnal(noRef);
+
+                    // Buka Modal
+                    document.getElementById('modal-review').classList.remove('hidden');
+                } else {
+                    alert("⚠️ " + (data.detail || "Jurnal tidak ditemukan."));
+                }
+            } catch (e) {
+                alert("⚠️ Gagal mengambil detail jurnal dari server.");
+            }
+        };
+
+        window.tutupModal = function () {
+            document.getElementById('modal-review').classList.add('hidden');
+        };
+
+        async function hapusJurnal(noRef) {
+            if (!confirm(`⚠️ PERINGATAN KERAS!\n\nApakah Anda yakin ingin MENGHAPUS PERMANEN jurnal ${noRef}?\nData yang dihapus tidak dapat dikembalikan lagi.`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/jurnal/${encodeURIComponent(noRef)}`, { method: 'DELETE' });
+                const result = await res.json();
+
+                if (res.ok) {
+                    alert("🗑️ " + result.pesan);
+                    tutupModal();
+                    muatJurnalPending();
+                } else {
+                    alert("❌ GAGAL: " + result.detail);
+                }
+            } catch (e) {
+                alert("Terjadi kesalahan koneksi ke server.");
+            }
+        }
+
+        function tutupModal() { document.getElementById('modal-review').classList.add('hidden'); }
+
+        async function postingJurnal(noRef) {
+            if (!confirm(`Apakah Anda yakin ingin mem-posting jurnal ${noRef} ke Buku Besar?\n\nData yang sudah diposting akan langsung mempengaruhi saldo akun.`)) {
+                return;
+            }
+
+            const btn = document.getElementById('btn-setujui');
+            const oriText = btn ? btn.innerHTML : "";
+            if (btn) { btn.disabled = true; btn.innerHTML = "⏳ Memproses..."; }
+
+            try {
+                // encodeURIComponent penting agar spasi pada format "BKK 202609-001" terbaca sempurna
+                const res = await fetch(`/api/jurnal/approve/${encodeURIComponent(noRef)}`, { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await res.json();
+
+                if (res.ok) {
+                    alert("🎉 " + result.pesan);
+                    tutupModal();
+                    await muatJurnalPending(); // Segarkan antrean tabel
+                } else {
+                    alert("❌ GAGAL POSTING:\n" + (result.detail || "Terjadi kesalahan di server."));
+                }
+            } catch (e) {
+                alert("⚠️ Kesalahan koneksi saat menghubungi server.");
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = oriText; }
+            }
+        }
+
+        async function tolakJurnal(noRef) {
+            if (!confirm(`Kembalikan ${noRef} ke Draft?`)) return;
+            try {
+                const res = await fetch(`/api/jurnal/reject/${noRef}`, { method: 'POST' });
+                if (res.ok) { alert("↩️ Dikembalikan ke Draft!"); tutupModal(); muatJurnalPending(); }
+                else alert("❌ Gagal.");
+            } catch (e) { alert("Koneksi error."); }
+        }
+
+        muatJurnalPending();
+    </script>
+</body>
+
+</html>

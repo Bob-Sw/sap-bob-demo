@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buku Besar - Modul SAP BoB</title>
+    <script src="/role_akses.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        /* TAMPILAN PENCARIAN DROPDOWN AKUN */
+        .ts-control {
+            padding: 5px 8px !important;
+            font-size: 11px !important;
+            border-color: #cbd5e1 !important;
+            background-color: #f8fafc !important;
+            border-radius: 0.25rem !important;
+            min-height: 30px !important;
+        }
+
+        .ts-dropdown,
+        .ts-dropdown .option {
+            font-size: 11px !important;
+        }
+
+        .ts-wrapper.single .ts-control:after {
+            right: 10px;
+        }
+
+        /* ========================================== */
+        /* PENGATURAN CETAK PRINTER / PDF MULTI-PAGE  */
+        /* ========================================== */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 10mm 15mm;
+            }
+
+            body,
+            html {
+                background: #fff !important;
+                color: #000 !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+
+            aside,
+            header,
+            .panel-filter,
+            .no-print,
+            #modal-review {
+                display: none !important;
+            }
+
+            /* Lepas semua batasan ukuran & overflow agar tabel menyambung ke halaman 2, 3 dst */
+            main,
+            .cetak-container,
+            .overflow-hidden,
+            .overflow-x-auto,
+            .flex-1,
+            .bg-white {
+                padding: 0 !important;
+                margin: 0 !important;
+                overflow: visible !important;
+                height: auto !important;
+                min-height: 0 !important;
+                display: block !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+
+            .print-header {
+                display: block !important;
+                margin-bottom: 15px;
+                border-bottom: 2px solid #000;
+                padding-bottom: 10px;
+            }
+
+            /* Penyesuaian Tabel Cetak */
+            table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+            }
+
+            th,
+            td {
+                border: 1px solid #cbd5e1 !important;
+                padding: 6px 8px !important;
+                color: black !important;
+                font-size: 9pt !important;
+            }
+
+            thead {
+                display: table-header-group !important;
+            }
+
+            tr {
+                page-break-inside: avoid !important;
+            }
+        }
+
+        .print-header {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="h-full flex overflow-hidden text-slate-700 text-xs">
+
+    <!-- SIDEBAR -->
+    <aside
+        class="w-48 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800 shadow-xl z-20 no-print">
+        <div class="h-12 px-3 bg-slate-950/80 flex items-center gap-2 border-b border-slate-800/80">
+            <img src="/Logo_SAP.png" alt="Logo" class="h-6 w-auto object-contain"
+                onerror="this.onerror=null; this.src='Logo_SAP.png';">
+            <h1 class="text-xs font-bold text-white tracking-wide">SAP BoB</h1>
+        </div>
+        <nav class="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
+            <div class="px-2 pb-1.5 text-[9px] font-semibold text-slate-500 uppercase tracking-wider">Modul Akuntansi
+            </div>
+            <a href="/dashboard"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>📊</span>
+                Dashboard</a>
+            <a href="/gl"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>📓</span>
+                Jurnal Umum</a>
+            <a href="/posting" id="menu-posting"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all"><span>✅</span>
+                Posting Pending</a>
+            <a href="/buku_besar"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-semibold text-white bg-indigo-600/90 shadow-sm transition-all"><span>📖</span>
+                Buku Besar</a>
+            <div class="relative group mt-0.5">
+                <div
+                    class="flex items-center justify-between px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer transition-all">
+                    <span class="flex items-center gap-2"><span>📑</span> Laporan Keuangan</span>
+                    <svg class="w-3 h-3 transform group-hover:rotate-180 transition-transform duration-200" fill="none"
+                        stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </div>
+                <div
+                    class="hidden group-hover:block pl-6 py-1 space-y-1 bg-slate-900/50 rounded-b border-l-2 border-indigo-500">
+                    <a href="/trial_balance"
+                        class="block px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all">⚖️
+                        Neraca Saldo (TB)</a>
+                    <a href="/balance_sheet"
+                        class="block px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all">📋
+                        Posisi Keuangan</a>
+                    <a href="/profit_loss"
+                        class="block px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all">📈
+                        Laba Rugi (P&L)</a>
+                    <a href="/cash_flow"
+                        class="block px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all">💸
+                        Arus Kas</a>
+                </div>
+            </div>
+        </nav>
+        <div class="p-2 bg-slate-950/60 border-t border-slate-800/80">
+            <button onclick="localStorage.clear(); window.location.href='/';"
+                class="w-full bg-slate-800 hover:bg-rose-600/80 text-slate-300 hover:text-white py-1.5 px-2 rounded text-[10px] font-medium transition-all flex items-center justify-center gap-1.5"><span>🚪</span>
+                Logout</button>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-100/70 relative">
+        <header
+            class="h-10 bg-white border-b border-slate-200/80 px-4 flex items-center justify-between shadow-xs z-10 flex-shrink-0 no-print">
+            <div class="flex items-center gap-1.5 text-[11px]">
+                <span class="text-slate-400">Akuntansi</span> <span class="text-slate-300">/</span>
+                <h2 class="font-semibold text-slate-800">Buku Besar (General Ledger)</h2>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-3 cetak-container">
+
+            <div class="print-header">
+                <div class="flex justify-between items-end">
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-900 uppercase">PT. SAP BoB Nusantara</h1>
+                        <p class="text-[12px] text-slate-500 font-semibold mt-1">LAPORAN BUKU BESAR (GENERAL LEDGER)</p>
+                    </div>
+                    <div class="text-right text-[11px] text-slate-700" id="print-info-periode"></div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded border border-slate-200 shadow-sm p-3 panel-filter no-print">
+                <div class="grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Pilih / Ketik Akun
+                            (COA)</label>
+                        <select id="kode_akun"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                            <option value="">Memuat akun...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Dari Tanggal</label>
+                        <input type="date" id="tgl_mulai"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Sampai Tanggal</label>
+                        <input type="date" id="tgl_selesai"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Cabang</label>
+                        <select id="kode_cabang"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                            <option value="SEMUA">Semua Cabang</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Departemen</label>
+                        <select id="kode_departemen"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                            <option value="SEMUA" selected>Semua Dept</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button onclick="tampilkanBukuBesar()"
+                            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-[11px] font-bold shadow-xs transition-colors flex items-center justify-center gap-1">
+                            🔍 Tampilkan
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="bg-white p-2.5 rounded border border-slate-200 shadow-xs border-l-4 border-l-slate-400">
+                    <span class="text-[9px] font-bold text-slate-400 uppercase block">Saldo Awal</span>
+                    <span id="saldo-awal" class="text-xs font-mono font-bold text-slate-700">Rp 0</span>
+                </div>
+                <div class="bg-white p-2.5 rounded border border-slate-200 shadow-xs border-l-4 border-l-emerald-500">
+                    <span class="text-[9px] font-bold text-slate-400 uppercase block">Total Mutasi Debit</span>
+                    <span id="total-debit" class="text-xs font-mono font-bold text-emerald-600">Rp 0</span>
+                </div>
+                <div class="bg-white p-2.5 rounded border border-slate-200 shadow-xs border-l-4 border-l-rose-500">
+                    <span class="text-[9px] font-bold text-slate-400 uppercase block">Total Mutasi Kredit</span>
+                    <span id="total-kredit" class="text-xs font-mono font-bold text-rose-600">Rp 0</span>
+                </div>
+                <div class="bg-white p-2.5 rounded border border-slate-200 shadow-xs border-l-4 border-l-indigo-600">
+                    <span class="text-[9px] font-bold text-slate-400 uppercase block">Saldo Akhir</span>
+                    <span id="saldo-akhir" class="text-xs font-mono font-bold text-indigo-700">Rp 0</span>
+                </div>
+            </div>
+
+            <div class="bg-white rounded border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[350px]">
+                <div class="px-3 py-2 bg-slate-50 border-b border-slate-200 flex justify-between items-center no-print">
+                    <span class="font-bold text-slate-700 text-[10px] uppercase" id="label-detail-akun">Rincian Mutasi
+                        Akun</span>
+                    <div class="flex gap-2">
+                        <button onclick="exportExcel()"
+                            class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded text-[10px] font-bold transition-colors flex items-center gap-1 shadow-xs">
+                            📊 Export Excel
+                        </button>
+                        <button onclick="window.print()"
+                            class="bg-slate-700 hover:bg-slate-800 text-white px-2.5 py-1 rounded text-[10px] font-bold transition-colors flex items-center gap-1 shadow-xs">
+                            🖨️ Cetak Laporan
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left border-collapse" id="tabel-buku-besar">
+                        <thead class="bg-slate-100 text-slate-600 text-[10px]">
+                            <tr>
+                                <th class="py-1.5 px-3 border-b">Tanggal</th>
+                                <th class="py-1.5 px-3 border-b">No Referensi</th>
+                                <th class="py-1.5 px-3 border-b">Keterangan</th>
+                                <th class="py-1.5 px-3 border-b text-right">Debit (Rp)</th>
+                                <th class="py-1.5 px-3 border-b text-right">Kredit (Rp)</th>
+                                <th class="py-1.5 px-3 border-b text-right">Saldo Kumulatif (Rp)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabel-bb-body" class="divide-y divide-slate-100 text-[11px]">
+                            <tr>
+                                <td colspan="6" class="text-center py-6 text-slate-400 italic">Silakan pilih akun dan
+                                    klik "Tampilkan".</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL DRILL-DOWN (MUNCUL SAAT KLIK 2X NO. REF) -->
+        <div id="modal-review"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden no-print">
+            <div
+                class="bg-white rounded-lg shadow-xl border border-slate-200 w-full max-w-3xl flex flex-col max-h-[85vh] mx-4 overflow-hidden">
+                <div class="bg-slate-800 px-4 py-2.5 flex justify-between items-center flex-shrink-0">
+                    <h3 class="font-semibold text-white text-xs flex items-center gap-2">🔍 Detail Transaksi Jurnal
+                        Asal: <span id="modal-noref" class="text-amber-400 font-mono"></span></h3>
+                    <button onclick="tutupModal()"
+                        class="text-slate-400 hover:text-white text-lg leading-none">&times;</button>
+                </div>
+
+                <div class="p-4 overflow-y-auto flex-1 bg-slate-50/50">
+                    <div class="grid grid-cols-3 gap-2 mb-3 bg-white p-2.5 rounded border border-slate-200 text-[11px]">
+                        <p class="text-slate-500">Tanggal: <span id="modal-tgl"
+                                class="font-bold text-slate-800 ml-1"></span></p>
+                        <p class="text-slate-500">Cabang: <span id="modal-cabang"
+                                class="font-bold text-indigo-600 ml-1"></span></p>
+                        <p class="text-slate-500">Departemen: <span id="modal-dept"
+                                class="font-bold text-indigo-600 ml-1"></span></p>
+                    </div>
+
+                    <div class="border border-slate-200 rounded overflow-hidden">
+                        <table class="w-full text-left text-[11px] border-collapse">
+                            <thead class="bg-slate-100 text-slate-600">
+                                <tr>
+                                    <th class="p-2 border-b font-semibold">Akun</th>
+                                    <th class="p-2 border-b font-semibold">Keterangan</th>
+                                    <th class="p-2 border-b font-semibold text-right">Debit (Rp)</th>
+                                    <th class="p-2 border-b font-semibold text-right">Kredit (Rp)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modal-tabel-body" class="bg-white divide-y divide-slate-100"></tbody>
+                            <tfoot class="bg-slate-50 font-bold text-slate-700 border-t-2 border-slate-200">
+                                <tr>
+                                    <td colspan="2" class="p-2 text-right uppercase text-[10px]">Total:</td>
+                                    <td id="modal-tot-deb" class="p-2 text-right text-emerald-600 font-mono">0</td>
+                                    <td id="modal-tot-kre" class="p-2 text-right text-rose-600 font-mono">0</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div
+                    class="bg-slate-100 px-4 py-3 border-t border-slate-200 flex justify-end items-center flex-shrink-0">
+                    <button onclick="tutupModal()"
+                        class="bg-slate-600 hover:bg-slate-700 text-white font-medium px-5 py-1.5 text-[11px] rounded shadow-sm transition-colors">Tutup
+                        Jurnal</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL POP-UP DETAIL JURNAL (DRILL-DOWN) -->
+        <div id="modal-review"
+            class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-xs hidden no-print">
+            <div
+                class="bg-white rounded-lg shadow-xl border border-slate-200 w-full max-w-3xl flex flex-col max-h-[85vh] mx-4 overflow-hidden">
+                <div class="bg-slate-800 px-4 py-2.5 flex justify-between items-center flex-shrink-0">
+                    <h3 class="font-semibold text-white text-xs flex items-center gap-2">🔍 Detail Transaksi Jurnal
+                        Asal: <span id="modal-noref" class="text-amber-400 font-mono"></span></h3>
+                    <button onclick="tutupModal()"
+                        class="text-slate-400 hover:text-white text-lg leading-none">&times;</button>
+                </div>
+
+                <div class="p-4 overflow-y-auto flex-1 bg-slate-50/50">
+                    <div class="grid grid-cols-3 gap-2 mb-3 bg-white p-2.5 rounded border border-slate-200 text-[11px]">
+                        <p class="text-slate-500">Tanggal: <span id="modal-tgl"
+                                class="font-bold text-slate-800 ml-1"></span></p>
+                        <p class="text-slate-500">Cabang: <span id="modal-cabang"
+                                class="font-bold text-indigo-600 ml-1"></span></p>
+                        <p class="text-slate-500">Departemen: <span id="modal-dept"
+                                class="font-bold text-indigo-600 ml-1"></span></p>
+                    </div>
+
+                    <div class="border border-slate-200 rounded overflow-hidden">
+                        <table class="w-full text-left text-[11px] border-collapse">
+                            <thead class="bg-slate-100 text-slate-600">
+                                <tr>
+                                    <th class="p-2 border-b font-semibold">Akun</th>
+                                    <th class="p-2 border-b font-semibold">Keterangan</th>
+                                    <th class="p-2 border-b font-semibold text-right">Debit (Rp)</th>
+                                    <th class="p-2 border-b font-semibold text-right">Kredit (Rp)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modal-tabel-body" class="bg-white divide-y divide-slate-100"></tbody>
+                            <tfoot class="bg-slate-50 font-bold text-slate-700 border-t-2 border-slate-200">
+                                <tr>
+                                    <td colspan="2" class="p-2 text-right uppercase text-[10px]">Total:</td>
+                                    <td id="modal-tot-deb" class="p-2 text-right text-emerald-600 font-mono">0</td>
+                                    <td id="modal-tot-kre" class="p-2 text-right text-rose-600 font-mono">0</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div
+                    class="bg-slate-100 px-4 py-3 border-t border-slate-200 flex justify-end items-center flex-shrink-0">
+                    <button onclick="tutupModal()"
+                        class="bg-slate-600 hover:bg-slate-700 text-white font-medium px-5 py-1.5 text-[11px] rounded shadow-sm transition-colors">Tutup</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        let selectAkunSearch;
+        let lastDataBukuBesar = null; // Menyimpan cache data untuk Export Excel
+        const formatRp = (angka) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(angka);
+
+        // Membersihkan teks COA
+        function formatNamaAkun(kode, nama) {
+            let strKode = String(kode || '').trim();
+            let strNama = String(nama || '').trim();
+            if (!strNama) return strKode || '-';
+            if (!strKode) return strNama;
+            strNama = strNama.split(strKode).join('').trim();
+            while (strNama.startsWith('-') || strNama.startsWith(':') || strNama.startsWith('.')) {
+                strNama = strNama.substring(1).trim();
+            }
+            return `${strKode} - ${strNama}`;
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const role = (localStorage.getItem('role') || '').trim().toLowerCase();
+            const menuPosting = document.getElementById('menu-posting');
+            const menuSetupSystem = document.getElementById('section-setup-system');
+            const menuSetupUser = document.getElementById('menu-setup-user');
+            const menuBackupRestore = document.getElementById('menu-backup-restore');
+
+            if (role !== 'approver' && role !== 'super_user') {
+                if (menuPosting) menuPosting.remove();
+                if (menuSetupSystem) menuSetupSystem.remove();
+            }
+            if (role !== 'super_user') {
+                if (menuSetupUser) menuSetupUser.remove();
+                if (menuBackupRestore) menuBackupRestore.remove();
+
+            }
+
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            document.getElementById('tgl_mulai').valueAsDate = firstDay;
+            document.getElementById('tgl_selesai').valueAsDate = today;
+
+            muatMasterBukuBesar();
+        });
+
+        async function muatMasterBukuBesar() {
+            try {
+                const resCOA = await fetch('/api/coa');
+                const coaList = await resCOA.json();
+                const selAkun = document.getElementById('kode_akun');
+                selAkun.innerHTML = '<option value="">-- Pilih / Ketik Akun --</option>';
+
+                coaList.forEach(a => {
+                    selAkun.innerHTML += `<option value="${a.kode}">${a.kode} - ${(a.nama || '').trim()}</option>`;
+                });
+
+                if (selectAkunSearch) selectAkunSearch.destroy();
+                selectAkunSearch = new TomSelect('#kode_akun', {
+                    create: false,
+                    maxOptions: null,
+                    placeholder: "🔍 Ketik Kode atau Nama Akun...",
+                    sortField: { field: "text", order: "asc" },
+                    searchField: ['text', 'value'],
+                    dropdownParent: 'body'
+                });
+
+                const resCabang = await fetch('/api/cabang');
+                if (resCabang.ok) {
+                    const dataCabang = await resCabang.json();
+                    const selCabang = document.getElementById('kode_cabang');
+                    dataCabang.forEach(c => {
+                        selCabang.innerHTML += `<option value="${c.kode}">${c.kode} - ${c.nama}</option>`;
+                    });
+                }
+                const resDept = await fetch('/api/departemen');
+                if (resDept.ok) {
+                    const dataDept = await resDept.json();
+                    const selDept = document.getElementById('kode_departemen');
+                    selDept.innerHTML = '<option value="SEMUA" selected>Semua Dept</option>';
+                    dataDept.forEach(d => {
+                        selDept.innerHTML += `<option value="${d.kode}">${d.kode} - ${d.nama}</option>`;
+                    });
+                }
+            } catch (e) { console.error("Gagal muat master data Buku Besar", e); }
+        }
+
+        async function tampilkanBukuBesar() {
+            const kodeAkun = document.getElementById('kode_akun').value;
+            const tglMulai = document.getElementById('tgl_mulai').value;
+            const tglSelesai = document.getElementById('tgl_selesai').value;
+            const kodeCabang = document.getElementById('kode_cabang').value;
+            const kodeDept = document.getElementById('kode_departemen').value;
+
+            if (!kodeAkun) return alert("Silakan pilih / ketik Akun terlebih dahulu!");
+
+            const tbody = document.getElementById('tabel-bb-body');
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-slate-400 italic">Memuat mutasi...</td></tr>';
+
+            try {
+                const url = `/api/buku_besar?kode_akun=${encodeURIComponent(kodeAkun)}&tgl_mulai=${tglMulai}&tgl_selesai=${tglSelesai}&kode_cabang=${kodeCabang}&kode_departemen=${kodeDept}`;
+                const res = await fetch(url);
+
+                if (!res.ok) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-rose-500">Gagal mengambil data dari server.</td></tr>';
+                    return;
+                }
+
+                const data = await res.json();
+                lastDataBukuBesar = data;
+
+                let saldoAwal = data.saldo_awal || 0;
+                let totDebit = data.total_debit || 0;
+                let totKredit = data.total_kredit || 0;
+                let saldoAkhir = data.saldo_akhir || (saldoAwal + totDebit - totKredit);
+
+                document.getElementById('saldo-awal').innerText = "Rp " + formatRp(saldoAwal);
+                document.getElementById('total-debit').innerText = "Rp " + formatRp(totDebit);
+                document.getElementById('total-kredit').innerText = "Rp " + formatRp(totKredit);
+                document.getElementById('saldo-akhir').innerText = "Rp " + formatRp(saldoAkhir);
+
+                document.getElementById('label-detail-akun').innerText = `Rincian Mutasi Akun: ${kodeAkun}`;
+
+                const elPrintInfo = document.getElementById('print-info-periode');
+                if (elPrintInfo) {
+                    elPrintInfo.innerHTML = `
+                        <strong>Akun:</strong> ${kodeAkun}<br>
+                        <strong>Periode:</strong> ${tglMulai} s/d ${tglSelesai}<br>
+                        <strong>Cabang:</strong> ${kodeCabang} | <strong>Dept:</strong> ${kodeDept}
+                    `;
+                }
+
+                tbody.innerHTML = "";
+
+                if (!data.mutasi || data.mutasi.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-slate-400 italic">Tidak ada transaksi mutasi pada periode ini.</td></tr>';
+                    return;
+                }
+
+                let runningSaldo = saldoAwal;
+                data.mutasi.forEach(m => {
+                    runningSaldo += (m.debit - m.kredit);
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
+                            <td class="py-1.5 px-3 text-slate-600">${m.tanggal}</td>
+                            <td class="py-1.5 px-3 font-mono font-bold text-indigo-700 flex items-center gap-2">
+                                <span class="hover:underline cursor-pointer" onclick="bukaDetailJurnal('${m.no_referensi}')" title="Klik untuk lihat rincian jurnal asal">${m.no_referensi}</span>
+                                <a href="/cetak_jurnal?ref=${encodeURIComponent(m.no_referensi)}" target="_blank" class="text-slate-400 hover:text-indigo-600" title="Cetak Jurnal (Tab Baru)">🖨️</a>
+                            </td>
+                            <td class="py-1.5 px-3 text-slate-700">${m.keterangan || '-'}</td>
+                            <td class="py-1.5 px-3 text-right font-mono text-emerald-600">${formatRp(m.debit)}</td>
+                            <td class="py-1.5 px-3 text-right font-mono text-rose-600">${formatRp(m.kredit)}</td>
+                            <td class="py-1.5 px-3 text-right font-mono font-bold text-slate-800">${formatRp(runningSaldo)}</td>
+                        </tr>
+                    `;
+                });
+
+            } catch (e) {
+                console.error("Error tampilkan buku besar:", e);
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-rose-500">Terjadi kesalahan koneksi.</td></tr>';
+            }
+        }
+
+        // FUNGSI DRILL-DOWN POP-UP JURNAL
+        async function bukaDetailJurnal(noRef) {
+            try {
+                const res = await fetch(`/api/jurnal/detail/${encodeURIComponent(noRef)}`);
+                const data = await res.json();
+
+                if (res.ok) {
+                    document.getElementById('modal-noref').innerText = data.no_referensi;
+                    document.getElementById('modal-tgl').innerText = data.tanggal;
+                    document.getElementById('modal-cabang').innerText = data.kode_cabang || "HO";
+                    document.getElementById('modal-dept').innerText = data.kode_departemen || "FIN";
+
+                    const tbody = document.getElementById('modal-tabel-body');
+                    tbody.innerHTML = "";
+                    let tDeb = 0, tKre = 0;
+
+                    data.detail.forEach(b => {
+                        tDeb += b.debit;
+                        tKre += b.kredit;
+                        const akunBersih = formatNamaAkun(b.kode_akun);
+
+                        tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-2 font-mono text-indigo-700">${akunBersih}</td>
+                        <td class="p-2 text-slate-600">${b.keterangan || '-'}</td>
+                        <td class="p-2 text-right font-mono text-emerald-600">${formatRp(b.debit)}</td>
+                        <td class="p-2 text-right font-mono text-rose-600">${formatRp(b.kredit)}</td>
+                    </tr>
+                `;
+                    });
+
+                    document.getElementById('modal-tot-deb').innerText = formatRp(tDeb);
+                    document.getElementById('modal-tot-kre').innerText = formatRp(tKre);
+                    document.getElementById('modal-review').classList.remove('hidden');
+                } else {
+                    alert("Data transaksi jurnal tidak ditemukan: " + (data.detail || ""));
+                }
+            } catch (e) {
+                alert("Gagal mengambil detail dokumen jurnal asal.");
+            }
+        }
+
+        function tutupModal() {
+            document.getElementById('modal-review').classList.add('hidden');
+        }
+
+        // ==============================================================
+        // FUNGSI EXPORT EXCEL LANGSUNG KELUAR FILE .XLSX
+        // ==============================================================
+        function exportExcel() {
+            if (!lastDataBukuBesar || !lastDataBukuBesar.mutasi) {
+                return alert("Tampilkan data Buku Besar terlebih dahulu sebelum meng-export!");
+            }
+
+            const kodeAkun = document.getElementById('kode_akun').value;
+            const tglMulai = document.getElementById('tgl_mulai').value;
+            const tglSelesai = document.getElementById('tgl_selesai').value;
+            const kodeCabang = document.getElementById('kode_cabang').value;
+            const kodeDept = document.getElementById('kode_departemen').value;
+
+
+            const excelRows = [
+                ["PT. SAP BoB Nusantara"],
+                ["LAPORAN BUKU BESAR (GENERAL LEDGER)"],
+                [`Akun: ${kodeAkun}`, `Periode: ${tglMulai} s/d ${tglSelesai}`, `Cabang: ${kodeCabang}`, `Dept: ${kodeDept}`]
+            ]
+
+            let runningSaldo = lastDataBukuBesar.saldo_awal || 0;
+            excelRows.push(["-", "-", "SALDO AWAL", 0, 0, runningSaldo]);
+
+            lastDataBukuBesar.mutasi.forEach(m => {
+                runningSaldo += (m.debit - m.kredit);
+                excelRows.push([
+                    m.tanggal,
+                    m.no_referensi,
+                    m.keterangan || '-',
+                    m.debit,
+                    m.kredit,
+                    runningSaldo
+                ]);
+            });
+
+            excelRows.push([]);
+            excelRows.push(["TOTAL MUTASI", "", "", lastDataBukuBesar.total_debit || 0, lastDataBukuBesar.total_kredit || 0, lastDataBukuBesar.saldo_akhir || runningSaldo]);
+
+            const ws = XLSX.utils.aoa_to_sheet(excelRows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Buku Besar");
+
+            const fileName = `Buku_Besar_${kodeAkun}_${tglMulai}_sd_${tglSelesai}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        }
+    </script>
+</body>
+
+</html>

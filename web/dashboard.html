@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Modul SAP BoB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/role_akses.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+
+<body class="h-full flex overflow-hidden text-slate-700 text-xs">
+
+    <aside
+        class="w-48 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800 shadow-xl z-20">
+        <div class="h-12 px-3 bg-slate-950/80 flex items-center gap-2 border-b border-slate-800/80">
+            <img src="/web/Logo_SAP.png" alt="Logo SAP" class="h-6 w-auto object-contain rounded-xs"
+                onerror="this.onerror=null; this.src='/web/Logo_SAP.png';">
+            <div>
+                <h1 class="text-xs font-bold text-white tracking-wide">SAP BoB</h1>
+            </div>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
+            <div class="px-2 pb-1.5 text-[9px] font-semibold text-slate-500 uppercase tracking-wider">Modul Akuntansi
+            </div>
+            <a href="/dashboard" id="menu-dashboard"
+                class="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-semibold text-white bg-indigo-600/90 shadow-sm transition-all">
+                <span>📊</span> Dashboard
+            </a>
+
+            <div id="menu-dropdown-gl" class="relative group">
+
+                <div
+                    class="flex items-center justify-between px-3 py-2 rounded text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 cursor-pointer transition-all">
+                    <span class="flex items-center gap-2">
+                        <span>📓</span> General Ledger
+                    </span>
+                    <svg class="w-3 h-3 transform group-hover:rotate-180 transition-transform duration-200" fill="none"
+                        stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </div>
+
+                <div
+                    class="hidden group-hover:block pl-6 py-1 space-y-1 bg-slate-900/50 rounded-b border-l-2 border-blue-500 my-0.5">
+                    <a href="/gl" id="menu-gl" target="_blank"
+                        class="block px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                        📓 Input Jurnal
+                    </a>
+                    <a href="/posting" id="menu-posting" target="_blank"
+                        class="block px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                        ✅ Posting Pending
+                    </a>
+                    <a href="/buku_besar" id="menu-buku-besar" target="_blank"
+                        class="block px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                        📖 Buku Besar
+                    </a>
+
+                </div>
+            </div>
+
+            <a href="/fixed_asset" target="_blank"
+                class="block px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                🏗️ Fixed Asset
+            </a>
+
+            <div id="menu-dropdown-laporan" class="relative group">
+                <div
+                    class="flex items-center justify-between px-3 py-2 rounded text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 cursor-pointer transition-all">
+                    <span class="flex items-center gap-2">
+                        <span>📊</span> Laporan Keuangan
+                    </span>
+                    <svg class="w-3 h-3 transform group-hover:rotate-180 transition-transform duration-200" fill="none"
+                        stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </div>
+
+                <div
+                    class="hidden group-hover:block pl-6 py-1 space-y-1 bg-slate-900/50 rounded-b border-l-2 border-blue-500 my-0.5">
+                    <a href="/trial_balance" target="_blank"
+                        class="block px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                        📋 Trial Balance (Neraca Saldo)
+                    </a>
+                    <a href="/balance_sheet" target="_blank"
+                        class="block px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                        ⚖️ Balance Sheet (Neraca)
+                    </a>
+                    <a href="/profit_loss" target="_blank"
+                        class="block px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                        📈 Profit & Loss (Laba Rugi)
+                    </a>
+                    <a href="/cash_flow" target="_blank"
+                        class="block px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                        💰 Cash Flow (Arus Kas)
+                    </a>
+                </div>
+            </div>
+            <div id="menu-dropdown-setup" class="relative group">
+                <div
+                    class="flex items-center justify-between px-3 py-2 rounded text-xs font-medium text-slate-300 hover:text-amber-500 hover:bg-slate-800 cursor-pointer transition-all">
+                    <span class="flex items-center gap-2">
+                        <span>⚙️</span> SET UP SYSTEM
+                    </span>
+                    <svg class="w-3 h-3 transform group-hover:rotate-180 transition-transform duration-200" fill="none"
+                        stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
+                        </path>
+                    </svg>
+                    <div
+                        class="hidden group-hover:block pl-6 py-1 space-y-1 bg-slate-900/50 rounded-b border-l-2 border-blue-500 my-0.5">
+                        <a href="/setup_user" target="_blank"
+                            class="block px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                            ⚙️User & Hak Akses</a>
+                        <a href="/setup_coa" target="_blank"
+                            class="block px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                            🗂️Chart of Account
+                        </a>
+                        <a href="/setup_org" target="_blank"
+                            class="block px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                            🏢Cabang & Dept
+                        </a>
+                        <a href="/setup_voucher" target="_blank"
+                            class="block px-2 py-1.5 rounded text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                            🎟️Kode Voucher
+                        </a>
+                    </div>
+                </div>
+        </nav>
+        <div class="p-2 bg-slate-950/60 border-t border-slate-800/80 space-y-1">
+            <button onclick="bukaModalGantiPassword()"
+                class="w-full bg-slate-800 hover:bg-indigo-600/80 text-slate-300 hover:text-white py-1.5 px-2 rounded text-[12px] font-medium transition-all flex items-center justify-center gap-1.5">
+                <span>🔑</span> Ganti Password
+            </button>
+            <button onclick="logoutUser()"
+                class="w-full bg-slate-800 hover:bg-rose-600/80 text-slate-300 hover:text-white py-1.5 px-2 rounded text-[12px] font-medium transition-all flex items-center justify-center gap-1.5">
+                <span>🚪</span> Logout
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-100/70 relative">
+        <header
+            class="h-10 bg-white border-b border-slate-200/80 px-4 flex items-center justify-between shadow-xs z-10 flex-shrink-0">
+            <div class="flex items-center gap-1.5 text-[11px]">
+                <span class="text-slate-400">Akuntansi</span> <span class="text-slate-300">/</span>
+                <h2 class="font-semibold text-slate-800">Beranda Dashboard</h2>
+            </div>
+            <button onclick="muatDashboard()"
+                class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-2.5 py-1 rounded text-[10px] font-semibold transition-colors border border-indigo-200">
+                🔄 Segarkan
+            </button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+
+            <div
+                class="bg-white rounded border border-slate-200 shadow-sm p-4 flex justify-between items-center bg-gradient-to-r from-indigo-900 to-slate-800 text-white">
+                <div>
+                    <h2 class="text-lg font-extrabold tracking-wide mb-0.5" id="user_greeting">
+                        SELAMAT DATANG, USER 👋
+                    </h2>
+                    <p class="text-[10px] text-indigo-200">Berikut adalah ringkasan aktivitas pembukuan Anda hari ini.
+                    </p>
+                </div>
+                <div class="hidden sm:block text-right">
+                    <p class="text-[10px] text-indigo-200 uppercase tracking-widest">Sistem Aktif</p>
+                    <p class="text-sm font-mono font-bold" id="jam_digital">00:00:00</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div
+                    class="bg-white rounded border border-slate-200 shadow-sm p-3 border-l-4 border-l-slate-400 flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Draft Tersimpan
+                        </p>
+                        <h3 class="text-2xl font-bold text-slate-700 font-mono" id="kpi_draft">0</h3>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-lg">💾</div>
+                </div>
+
+                <div
+                    class="bg-white rounded border border-slate-200 shadow-sm p-3 border-l-4 border-l-amber-500 flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Menunggu Posting
+                        </p>
+                        <h3 class="text-2xl font-bold text-amber-600 font-mono" id="kpi_pending">0</h3>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-lg">⏳</div>
+                </div>
+
+                <div
+                    class="bg-white rounded border border-slate-200 shadow-sm p-3 border-l-4 border-l-emerald-500 flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Jurnal Ter-Posting
+                        </p>
+                        <h3 class="text-2xl font-bold text-emerald-600 font-mono" id="kpi_posted">0</h3>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-lg">✅</div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+                <div class="px-3 py-2.5 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                    <span class="font-bold text-slate-600 text-[10px] uppercase tracking-wider">Aktivitas Jurnal
+                        Terkini</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-100 text-slate-500 text-[10px]">
+                            <tr>
+                                <th class="py-1.5 px-3 border-b border-slate-200 font-semibold">Tgl Transaksi</th>
+                                <th class="py-1.5 px-3 border-b border-slate-200 font-semibold">No Referensi</th>
+                                <th class="py-1.5 px-3 border-b border-slate-200 font-semibold">Voucher</th>
+                                <th class="py-1.5 px-3 border-b border-slate-200 font-semibold">Cabang</th>
+                                <th class="py-1.5 px-3 border-b border-slate-200 font-semibold text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabel-recent" class="divide-y divide-slate-100 text-[11px]">
+                            <tr>
+                                <td colspan="5" class="py-6 text-center text-slate-400 italic">Memuat data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // ==========================================
+        // 🔒 SISTEM PROTEKSI HAK AKSES (RBAC)
+        // ==========================================
+        const userRole = localStorage.getItem('role');
+
+        // 1. Cek Sesi Login
+        if (!userRole) {
+            alert("Anda belum login! Silakan login terlebih dahulu.");
+            window.location.href = '/';
+        }
+
+        // 2. Proteksi Halaman Posting Jurnal (/posting)
+        // Role 'maker' DILARANG MASUK
+        if (window.location.pathname.includes('/posting') && userRole === 'maker') {
+            alert("⛔ AKSES DITOLAK: Role 'Maker' tidak memiliki akses ke halaman Posting Jurnal.");
+            window.location.href = '/dashboard';
+        }
+
+        // 3. Proteksi Halaman Setup User (/setup_user)
+        // Khusus untuk 'super_user' saja
+        if (window.location.pathname.includes('/setup_user') && userRole !== 'approver' && userRole !== 'super_user') {
+            alert("⛔ AKSES DITOLAK: Halaman Setup System khusus untuk Super User / Administrator.");
+            window.location.href = '/dashboard';
+        }
+
+        // 4. Sembunyikan Menu Sidebar Sesuai Role
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const role = localStorage.getItem('role');
+
+            // 1. Sembunyikan menu Posting dari Maker
+            if (role === 'maker') {
+                const btnPosting = document.getElementById('menu-posting');
+                if (btnPosting) btnPosting.style.display = 'none';
+            }
+
+            // 2. Sembunyikan menu Setup System dari selain Super User
+            if (role !== 'approver' && role !== 'super_user') {
+                const btnSetup = document.getElementById('section-setup-system');
+                if (btnSetup) btnSetup.style.display = 'none';
+            }
+        });
+        // ==========================================
+
+
+        document.addEventListener("DOMContentLoaded", () => {
+            // Normalisasi Role ke huruf kecil tanpa spasi
+            const rawRole = localStorage.getItem('role') || '';
+            const role = rawRole.trim().toLowerCase();
+
+            const menuPosting = document.getElementById('menu-posting');
+            const menuSetup = document.getElementById('section-setup-system');
+
+            // 1. HANYA 'approver' DAN 'super_user' YANG BOLEH LIHAT MENU POSTING
+            if (role !== 'approver' && role !== 'super_user') {
+                if (menuPosting) menuPosting.remove(); // Hapus permanen dari DOM
+            }
+
+            // 2. HANYA 'super_user' YANG BOLEH LIHAT MENU SETUP SYSTEM
+            if (role !== 'approver' && role !== 'super_user') {
+                if (menuSetup) menuSetup.remove(); // Hapus permanen dari DOM
+            }
+        });
+
+        // Jam Digital
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('jam_digital').innerText = now.toLocaleTimeString('id-ID');
+        }, 1000);
+
+        // Ambil Profil Nama User dari localStorage
+        function setupUserGreeting() {
+            const namaKaryawan = localStorage.getItem('nama_karyawan') || 'SHANTI';
+            const greetingEl = document.getElementById('user_greeting');
+            if (greetingEl) {
+                greetingEl.innerText = `SELAMAT DATANG, ${namaKaryawan.toUpperCase()} 👋`;
+            }
+        }
+
+        // Fungsi Memuat Data API Dashboard
+        async function muatDashboard() {
+            try {
+                const res = await fetch(`/api/dashboard/summary?_t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
+                const data = await res.json();
+
+                document.getElementById('kpi_draft').innerText = data.kpi.draft;
+                document.getElementById('kpi_pending').innerText = data.kpi.pending;
+                document.getElementById('kpi_posted').innerText = data.kpi.posted;
+
+                const tbody = document.getElementById('tabel-recent');
+                tbody.innerHTML = "";
+
+                if (data.recent.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400 italic">Belum ada aktivitas jurnal.</td></tr>';
+                    return;
+                }
+
+                data.recent.forEach(j => {
+                    let badgeClass = "bg-slate-100 text-slate-600";
+                    if (j.status === "Pending") badgeClass = "bg-amber-100 text-amber-700";
+                    if (j.status === "Posted") badgeClass = "bg-emerald-100 text-emerald-700";
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="py-1.5 px-3 text-slate-600">${j.tanggal}</td>
+                            <td class="py-1.5 px-3 font-mono font-semibold text-indigo-700">${j.no_referensi}</td>
+                            <td class="py-1.5 px-3 font-mono text-slate-500">${j.kode_voucher}</td>
+                            <td class="py-1.5 px-3 text-slate-600">${j.cabang}</td>
+                            <td class="py-1.5 px-3 text-center">
+                                <span class="${badgeClass} text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wide">
+                                    ${j.status}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function logoutUser() {
+            localStorage.clear();
+            window.location.href = '/';
+        }
+
+        // Init
+        setupUserGreeting();
+        muatDashboard();
+    </script>
+    <!-- MODAL GANTI PASSWORD MANDIRI -->
+    <div id="modal-ganti-password"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs hidden">
+        <div class="bg-white rounded-lg shadow-xl border border-slate-200 w-full max-w-sm overflow-hidden mx-4">
+            <div class="bg-slate-800 px-4 py-2.5 flex justify-between items-center text-white">
+                <h3 class="font-semibold text-xs flex items-center gap-1.5">🔑 Ganti Password Sendiri</h3>
+                <button type="button" onclick="tutupModalGantiPassword()"
+                    class="text-slate-400 hover:text-white text-base leading-none">&times;</button>
+            </div>
+            <form id="formGantiPassword" onsubmit="eksekusiGantiPassword(event)" class="p-4 space-y-2.5">
+                <div>
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Password Saat Ini</label>
+                    <input type="password" id="pass_lama" required placeholder="••••••••"
+                        class="w-full bg-slate-50 border border-slate-200 rounded px-2.5 py-1.5 text-xs outline-none focus:border-indigo-500 focus:bg-white">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Password Baru</label>
+                    <input type="password" id="pass_baru" required placeholder="••••••••"
+                        class="w-full bg-slate-50 border border-slate-200 rounded px-2.5 py-1.5 text-xs outline-none focus:border-indigo-500 focus:bg-white">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Konfirmasi Password
+                        Baru</label>
+                    <input type="password" id="pass_baru_konfirm" required placeholder="••••••••"
+                        class="w-full bg-slate-50 border border-slate-200 rounded px-2.5 py-1.5 text-xs outline-none focus:border-indigo-500 focus:bg-white">
+                </div>
+                <div class="pt-2 flex justify-end gap-1.5 border-t border-slate-100">
+                    <button type="button" onclick="tutupModalGantiPassword()"
+                        class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1 rounded text-[11px] font-medium border border-slate-300">Batal</button>
+                    <button type="submit" id="btn-simpan-pass"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1 rounded text-[11px] font-bold shadow-xs">Simpan
+                        Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>

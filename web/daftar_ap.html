@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar AP & Kontrol Saldo - SAP BoB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        /* FORMAT CETAK PDF RESMI */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+                font-size: 10px !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .print-area {
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+            }
+
+            th,
+            td {
+                border: 1px solid #cbd5e1 !important;
+                padding: 4px 6px !important;
+            }
+
+            th {
+                background-color: #f1f5f9 !important;
+            }
+
+            .badge-print {
+                border: none !important;
+                background: transparent !important;
+                color: black !important;
+                font-weight: bold !important;
+                padding: 0 !important;
+            }
+
+            @page {
+                size: landscape;
+                margin: 10mm;
+            }
+        }
+    </style>
+</head>
+
+<body class="h-full flex flex-col overflow-hidden text-slate-700 text-xs">
+
+    <!-- HEADER TOOLBAR -->
+    <header
+        class="no-print h-11 bg-white border-b border-slate-200 px-4 flex items-center justify-between shadow-xs z-10 flex-shrink-0">
+        <div class="flex items-center gap-2">
+            <span class="text-base">📑</span>
+            <h2 class="font-bold text-slate-800 text-xs uppercase tracking-wide">Daftar Tagihan Hutang (Sub-Ledger AP)
+            </h2>
+        </div>
+        <div class="flex items-center gap-2">
+            <!-- TOMBOL CETAK KE PDF -->
+            <button onclick="cetakPDF()"
+                class="bg-slate-800 hover:bg-slate-900 text-white px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 shadow-xs transition-colors">
+                🖨️ Cetak PDF
+            </button>
+            <button onclick="exportDaftarAPKeExcel()"
+                class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 shadow-xs transition-colors">
+                📊 Export Excel
+            </button>
+            <button onclick="muatDataAP()"
+                class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded text-[11px] font-semibold border border-slate-300">
+                🔄 Segarkan
+            </button>
+        </div>
+    </header>
+
+    <div class="flex-1 overflow-y-auto p-3 space-y-3 print-area">
+
+        <!-- KOP KHUSUS SAAT CETAK PDF -->
+        <div class="hidden print:block mb-4 border-b-2 border-slate-800 pb-2">
+            <h1 class="text-base font-extrabold uppercase tracking-wide">LAPORAN SUB-LEDGER HUTANG USAHA (ACCOUNT
+                PAYABLE)</h1>
+            <p class="text-xs text-slate-600">Dicetak pada: <span id="print-tanggal">-</span></p>
+        </div>
+
+        <!-- REKONSILIASI KONTROL AP VS GL -->
+        <div class="no-print grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="bg-white p-3 rounded border border-slate-200 shadow-xs border-l-4 border-l-indigo-600">
+                <span class="text-[10px] font-bold text-slate-500 uppercase block">Total Saldo Terutang (AP
+                    Posted)</span>
+                <span id="ctrl-total-ap" class="text-sm font-mono font-bold text-indigo-700">Rp 0</span>
+                <p class="text-[9px] text-slate-400 mt-0.5">Faktur + PPN yang telah disetujui</p>
+            </div>
+
+            <div class="bg-white p-3 rounded border border-slate-200 shadow-xs border-l-4 border-l-blue-600">
+                <span class="text-[10px] font-bold text-slate-500 uppercase block">Total Hutang Usaha (GL / Prefix
+                    21)</span>
+                <span id="ctrl-total-gl" class="text-sm font-mono font-bold text-blue-700">Rp 0</span>
+                <p class="text-[9px] text-slate-400 mt-0.5">Saldo kredit mutasi jurnal posted</p>
+            </div>
+
+            <div id="box-status-balance" class="p-3 rounded border shadow-xs border-l-4 flex flex-col justify-center">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold uppercase">Status Kontrol</span>
+                    <span id="badge-balance" class="text-[9px] font-bold px-2 py-0.5 rounded">Mengecek...</span>
+                </div>
+                <div class="text-xs font-mono font-bold mt-1" id="ctrl-selisih">Selisih: Rp 0</div>
+            </div>
+        </div>
+
+        <!-- SUMMARY SALDO PER VENDOR -->
+        <div class="no-print bg-white rounded border border-slate-200 shadow-sm overflow-hidden">
+            <div class="px-3 py-1.5 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <span class="font-bold text-slate-700 text-[10px] uppercase">👥 Summary Saldo Hutang Per Vendor</span>
+                <span id="total-rekanan-vendor" class="text-[9px] font-bold text-slate-500">0 Rekanan</span>
+            </div>
+            <div class="overflow-x-auto max-h-36 overflow-y-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-100 text-slate-600 text-[10px] sticky top-0 z-10">
+                        <tr>
+                            <th class="py-1 px-2.5 border-b">Kode</th>
+                            <th class="py-1 px-2.5 border-b">Nama Vendor</th>
+                            <th class="py-1 px-2.5 border-b text-center">Faktur Aktif</th>
+                            <th class="py-1 px-2.5 border-b text-right">Total Tagihan</th>
+                            <th class="py-1 px-2.5 border-b text-right">Saldo Hutang</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-vendor-summary" class="divide-y divide-slate-100 text-[11px]">
+                        <tr>
+                            <td colspan="5" class="py-3 text-center text-slate-400 italic">Memuat summary vendor...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- FILTER & PENCARIAN -->
+        <div
+            class="no-print bg-white p-2.5 rounded border border-slate-200 shadow-xs flex flex-wrap gap-2 items-center justify-between">
+            <div class="flex items-center gap-2 flex-1 min-w-[240px]">
+                <span class="text-slate-400">🔍</span>
+                <input type="text" id="input-search" onkeyup="if(event.key === 'Enter') muatDataAP()"
+                    placeholder="Cari No. Bill, Vendor, Cabang..."
+                    class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none focus:border-indigo-500">
+                <button onclick="muatDataAP()"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-[11px] font-semibold">Cari</button>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-semibold text-slate-500">Vendor:</span>
+                <select id="filter-vendor" onchange="onVendorFilterChange()"
+                    class="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-semibold outline-none focus:border-indigo-500 max-w-[180px]">
+                    <option value="SEMUA">Semua Vendor</option>
+                </select>
+                <span id="badge-total-hutang-vendor"
+                    class="hidden bg-rose-50 text-rose-700 border border-rose-200 font-mono font-bold px-2 py-0.5 rounded text-[10px]">
+                    Rp 0
+                </span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-semibold text-slate-500">Cabang:</span>
+                <select id="filter-cabang" onchange="muatDataAP()"
+                    class="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-semibold outline-none focus:border-indigo-500">
+                    <option value="SEMUA">Semua Cabang</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-semibold text-slate-500">Status:</span>
+                <select id="filter-status-bayar" onchange="muatDataAP()"
+                    class="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none font-semibold">
+                    <option value="SEMUA">Semua Status</option>
+                    <option value="UNPAID">🔴 UNPAID (Terutang)</option>
+                    <option value="PAID">🟢 PAID (Lunas)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- TABEL RINCIAN DOKUMEN AP DENGAN KODE CABANG -->
+        <div class="bg-white rounded border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[40vh]">
+            <div class="no-print px-3 py-1.5 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <span class="font-bold text-slate-700 text-[10px] uppercase">Rincian Dokumen Tagihan AP</span>
+                <span id="jml-dokumen" class="text-[9px] font-bold text-slate-500">0 Dokumen</span>
+            </div>
+            <div class="overflow-x-auto flex-1">
+                <table class="w-full text-left border-collapse" id="tabel-daftar-ap">
+                    <thead class="bg-slate-100 text-slate-600 text-[10px] sticky top-0 z-10 uppercase">
+                        <tr>
+                            <th class="py-2 px-2 border-b">No. Bill</th>
+                            <th class="py-2 px-2 border-b">No. Faktur Vendor</th>
+                            <th class="py-2 px-2 border-b text-center">Cabang</th> <!-- KOLOM KODE CABANG -->
+                            <th class="py-2 px-2 border-b">Rekanan Vendor</th>
+                            <th class="py-2 px-2 border-b">Tgl Tagihan</th>
+                            <th class="py-2 px-2 border-b">Jatuh Tempo</th>
+                            <th class="py-2 px-2 border-b text-right">Total Tagihan</th>
+                            <th class="py-2 px-2 border-b text-right">Saldo Hutang</th>
+                            <th class="py-2 px-2 border-b text-center">Status Bayar</th>
+                            <th class="py-2 px-2 border-b text-center no-print">Approval</th>
+                            <th class="py-2 px-2 border-b text-center no-print w-24">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-tagihan" class="divide-y divide-slate-100 text-[11px]">
+                        <tr>
+                            <td colspan="11" class="py-6 text-center text-slate-400 italic">Memuat tagihan vendor...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODAL REVIEW DETAIL TAGIHAN -->
+    <div id="modal-review-bill"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50 p-4 no-print">
+        <div class="bg-white w-full max-w-2xl rounded-lg shadow-xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="bg-slate-800 p-3 text-white flex justify-between items-center">
+                <h3 class="font-bold text-xs uppercase flex items-center gap-1.5">🔍 Detail Tagihan: <span
+                        id="rev-nobill" class="text-amber-400 font-mono"></span></h3>
+                <button onclick="tutupReviewModal()"
+                    class="text-slate-400 hover:text-white text-base font-bold">&times;</button>
+            </div>
+
+            <div class="p-3 overflow-y-auto flex-1 space-y-2">
+                <div
+                    class="grid grid-cols-2 md:grid-cols-4 gap-2 bg-slate-50 p-2 rounded border border-slate-200 text-[10px]">
+                    <div><span class="text-slate-400 block">Faktur Vendor:</span> <span id="rev-faktur"
+                            class="font-bold text-slate-700"></span></div>
+                    <div><span class="text-slate-400 block">Cabang:</span> <span id="rev-cabang"
+                            class="font-bold text-indigo-700 font-mono"></span></div>
+                    <div><span class="text-slate-400 block">Rekanan:</span> <span id="rev-vendor"
+                            class="font-bold text-slate-700"></span></div>
+                    <div><span class="text-slate-400 block">Tgl Tagihan:</span> <span id="rev-tgl"
+                            class="font-mono text-slate-700"></span></div>
+                    <div><span class="text-slate-400 block">Jatuh Tempo:</span> <span id="rev-tempo"
+                            class="font-mono font-bold text-rose-600"></span></div>
+                    <div class="col-span-2"><span class="text-slate-400 block">Akun Hutang Usaha:</span> <span
+                            id="rev-hutang" class="font-mono text-indigo-700"></span></div>
+                    <div class="col-span-2"><span class="text-slate-400 block">Keterangan:</span> <span id="rev-ket"
+                            class="text-slate-700 italic"></span></div>
+                </div>
+
+                <div class="border border-slate-200 rounded overflow-hidden">
+                    <table class="w-full text-left border-collapse text-[10px]">
+                        <thead class="bg-slate-100 text-slate-600 font-semibold">
+                            <tr>
+                                <th class="p-1.5 border-b">Akun Biaya / Pembelian</th>
+                                <th class="p-1.5 border-b">Deskripsi</th>
+                                <th class="p-1.5 border-b text-right">Nominal (Rp)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rev-tbody-detail" class="divide-y divide-slate-100"></tbody>
+                        <tfoot class="bg-slate-50 font-mono font-semibold text-slate-700 border-t">
+                            <tr>
+                                <td colspan="2" class="p-1.5 text-right">Subtotal Beban:</td>
+                                <td id="rev-subtotal" class="p-1.5 text-right">0</td>
+                            </tr>
+                            <tr>
+                                <td colspan="2" class="p-1.5 text-right">(+) PPN Masukan:</td>
+                                <td id="rev-ppn" class="p-1.5 text-right text-indigo-600">0</td>
+                            </tr>
+                            <tr class="font-bold text-slate-900 border-t">
+                                <td colspan="2" class="p-1.5 text-right uppercase">Total Tagihan (Hutang AP):</td>
+                                <td id="rev-total" class="p-1.5 text-right text-emerald-700">0</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <div class="p-2.5 bg-slate-50 border-t border-slate-200 flex justify-end">
+                <button onclick="tutupReviewModal()"
+                    class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded text-[11px] font-semibold">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const formatRp = (v) => new Intl.NumberFormat('id-ID').format(v || 0);
+        let cacheDaftarBill = [];
+        let cacheSummaryVendor = [];
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            await inisialisasiFilterCabang();
+            muatDataAP(true);
+        });
+
+        async function inisialisasiFilterCabang() {
+            try {
+                const res = await fetch('/api/cabang');
+                if (res.ok) {
+                    const listCabang = await res.json();
+                    const selCabang = document.getElementById('filter-cabang');
+                    if (selCabang && listCabang.length > 0) {
+                        selCabang.innerHTML = '<option value="SEMUA">Semua Cabang</option>';
+                        listCabang.forEach(c => {
+                            selCabang.innerHTML += `<option value="${c.kode}">${c.kode} - ${c.nama}</option>`;
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn("Gagal inisialisasi filter cabang:", e);
+            }
+        }
+
+        async function muatDataAP(isInitVendorDropdown = false) {
+            const q = document.getElementById('input-search') ? document.getElementById('input-search').value.trim() : '';
+            const statusBayar = document.getElementById('filter-status-bayar') ? document.getElementById('filter-status-bayar').value : 'SEMUA';
+            const selVendorEl = document.getElementById('filter-vendor');
+            const kodeVendor = selVendorEl ? selVendorEl.value : 'SEMUA';
+
+            const selCabangEl = document.getElementById('filter-cabang');
+            const kodeCabang = selCabangEl ? selCabangEl.value : 'SEMUA';
+
+            const tbTagihan = document.getElementById('tbody-tagihan');
+            const tbSummary = document.getElementById('tbody-vendor-summary');
+
+            try {
+                const res = await fetch(`/api/ap/monitoring?q=${encodeURIComponent(q)}&status_bayar=${encodeURIComponent(statusBayar)}&kode_vendor=${encodeURIComponent(kodeVendor)}&kode_cabang=${encodeURIComponent(kodeCabang)}&_t=${Date.now()}`);
+
+                if (!res.ok) {
+                    const errJson = await res.json().catch(() => ({}));
+                    if (tbTagihan) tbTagihan.innerHTML = `<tr><td colspan="11" class="py-6 text-center text-rose-500 font-semibold">Gagal memuat data dari server.</td></tr>`;
+                    return;
+                }
+
+                const data = await res.json();
+                cacheDaftarBill = data.daftar_bill || [];
+                cacheSummaryVendor = data.summary_vendor || [];
+
+                // 1. Inisialisasi Dropdown Vendor
+                if (isInitVendorDropdown && selVendorEl) {
+                    selVendorEl.innerHTML = '<option value="SEMUA">Semua Vendor</option>';
+                    cacheSummaryVendor.forEach(v => {
+                        selVendorEl.innerHTML += `<option value="${v.kode_vendor}">${v.nama_vendor} (${v.kode_vendor})</option>`;
+                    });
+                }
+
+                // 2. Badge Total Hutang Vendor Terpilih
+                const badgeHutang = document.getElementById('badge-total-hutang-vendor');
+                if (badgeHutang) {
+                    if (kodeVendor && kodeVendor !== "SEMUA") {
+                        const vData = cacheSummaryVendor.find(v => v.kode_vendor === kodeVendor);
+                        const totalHutang = vData ? vData.saldo_hutang : 0;
+                        badgeHutang.innerText = `Total Hutang: Rp ${formatRp(totalHutang)}`;
+                        badgeHutang.classList.remove('hidden');
+                    } else {
+                        badgeHutang.classList.add('hidden');
+                    }
+                }
+
+                // 3. Kontrol GL
+                if (data.kontrol_gl) {
+                    const ctrl = data.kontrol_gl;
+                    if (document.getElementById('ctrl-total-ap')) document.getElementById('ctrl-total-ap').innerText = `Rp ${formatRp(ctrl.total_ap)}`;
+                    if (document.getElementById('ctrl-total-gl')) document.getElementById('ctrl-total-gl').innerText = `Rp ${formatRp(ctrl.total_gl)}`;
+                    if (document.getElementById('ctrl-selisih')) document.getElementById('ctrl-selisih').innerText = `Selisih: Rp ${formatRp(ctrl.selisih)}`;
+
+                    const boxCtrl = document.getElementById('box-status-balance');
+                    const badgeBal = document.getElementById('badge-balance');
+                    if (boxCtrl && badgeBal) {
+                        if (ctrl.status_balance) {
+                            boxCtrl.className = "p-3 rounded border shadow-xs border-l-4 bg-emerald-50/60 border-emerald-200 border-l-emerald-600 text-emerald-900";
+                            badgeBal.className = "text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-200 text-emerald-900";
+                            badgeBal.innerText = "⚖️ BALANCE (COCOK)";
+                        } else {
+                            boxCtrl.className = "p-3 rounded border shadow-xs border-l-4 bg-rose-50/60 border-rose-200 border-l-rose-600 text-rose-900";
+                            badgeBal.className = "text-[9px] font-bold px-2 py-0.5 rounded bg-rose-200 text-rose-900";
+                            badgeBal.innerText = "⚠️ SELISIH";
+                        }
+                    }
+                }
+
+                // 4. Summary Vendor
+                if (tbSummary) {
+                    tbSummary.innerHTML = "";
+                    if (document.getElementById('total-rekanan-vendor')) {
+                        document.getElementById('total-rekanan-vendor').innerText = `${cacheSummaryVendor.length} Rekanan`;
+                    }
+
+                    if (cacheSummaryVendor.length === 0) {
+                        tbSummary.innerHTML = '<tr><td colspan="5" class="py-3 text-center text-slate-400 italic">Tidak ada saldo hutang aktif pada vendor.</td></tr>';
+                    } else {
+                        cacheSummaryVendor.forEach(v => {
+                            tbSummary.innerHTML += `
+                                <tr class="hover:bg-slate-50">
+                                    <td class="py-1 px-2.5 font-mono font-bold text-indigo-700">${v.kode_vendor}</td>
+                                    <td class="py-1 px-2.5 font-semibold text-slate-800">${v.nama_vendor}</td>
+                                    <td class="py-1 px-2.5 text-center font-mono">${v.jumlah_faktur}</td>
+                                    <td class="py-1 px-2.5 text-right font-mono text-slate-600">Rp ${formatRp(v.total_tagihan)}</td>
+                                    <td class="py-1 px-2.5 text-right font-mono font-bold text-rose-600">Rp ${formatRp(v.saldo_hutang)}</td>
+                                </tr>
+                            `;
+                        });
+                    }
+                }
+
+                // 5. Tabel Tagihan
+                if (tbTagihan) {
+                    tbTagihan.innerHTML = "";
+                    if (document.getElementById('jml-dokumen')) {
+                        document.getElementById('jml-dokumen').innerText = `${cacheDaftarBill.length} Dokumen`;
+                    }
+
+                    if (cacheDaftarBill.length === 0) {
+                        tbTagihan.innerHTML = '<tr><td colspan="11" class="py-6 text-center text-slate-400 italic">Data tagihan tidak ditemukan.</td></tr>';
+                        return;
+                    }
+
+                    cacheDaftarBill.forEach(b => {
+                        const sisaHutang = parseFloat(b.saldo_terutang || 0);
+                        const isPaid = sisaHutang <= 0;
+
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+
+                        const dueDate = new Date(b.jatuh_tempo);
+                        let isOverdue = false;
+                        let diffDays = 0;
+
+                        if (!isNaN(dueDate.getTime())) {
+                            dueDate.setHours(0, 0, 0, 0);
+                            const diffTime = today - dueDate;
+                            diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            isOverdue = diffDays > 0;
+                        }
+
+                        let cellJatuhTempo = '';
+                        if (isPaid) {
+                            cellJatuhTempo = `<span class="font-mono text-slate-400">${b.jatuh_tempo}</span>`;
+                        } else if (isOverdue) {
+                            cellJatuhTempo = `
+                                <div class="font-mono font-bold text-rose-600">
+                                    ${b.jatuh_tempo}
+                                    <span class="block text-[9px] font-semibold text-rose-500 tracking-tight">Overdue ${diffDays} hr</span>
+                                </div>
+                            `;
+                        } else {
+                            cellJatuhTempo = `
+                                <div class="font-mono font-semibold text-blue-600">
+                                    ${b.jatuh_tempo}
+                                    <span class="block text-[9px] font-normal text-blue-400">Tempo aktif</span>
+                                </div>
+                            `;
+                        }
+
+                        const badgeBayar = isPaid
+                            ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[9px] font-bold badge-print">PAID</span>'
+                            : (isOverdue
+                                ? '<span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-[9px] font-bold badge-print">OVERDUE</span>'
+                                : '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[9px] font-bold badge-print">UNPAID</span>');
+
+                        let badgeApp = '';
+                        if (b.status_approval === 'Pending') {
+                            badgeApp = '<span class="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-[9px] font-bold">PENDING</span>';
+                        } else if (b.status_approval === 'Draft') {
+                            badgeApp = '<span class="bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded text-[9px] font-bold">DRAFT</span>';
+                        } else {
+                            badgeApp = '<span class="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[9px] font-bold">POSTED</span>';
+                        }
+
+                        let tombolAksi = `
+                            <button onclick="reviewTagihan('${b.no_bill}')" class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-semibold border border-blue-200">
+                                🔍 Detail
+                            </button>
+                        `;
+                        if (b.status_approval === 'Draft') {
+                            tombolAksi += `
+                                <button onclick="hapusDraftBill('${b.no_bill}')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-[10px] font-semibold border border-rose-200 ml-1">
+                                    🗑️ Hapus
+                                </button>
+                            `;
+                        }
+
+                        tbTagihan.innerHTML += `
+                            <tr class="hover:bg-slate-50 transition">
+                                <td class="py-1.5 px-2 font-mono font-bold text-indigo-700 cursor-pointer hover:underline" onclick="reviewTagihan('${b.no_bill}')">${b.no_bill}</td>
+                                <td class="py-1.5 px-2 font-mono text-slate-600">${b.no_faktur_vendor}</td>
+                                <td class="py-1.5 px-2 text-center font-mono font-bold text-indigo-900 bg-indigo-50/40">${b.kode_cabang || 'HO'}</td>
+                                <td class="py-1.5 px-2 font-semibold text-slate-800">${b.nama_vendor}</td>
+                                <td class="py-1.5 px-2 font-mono text-slate-500">${b.tanggal}</td>
+                                <td class="py-1.5 px-2">${cellJatuhTempo}</td>
+                                <td class="py-1.5 px-2 text-right font-mono text-slate-800">${formatRp(b.total_tagihan)}</td>
+                                <td class="py-1.5 px-2 text-right font-mono font-bold text-rose-700">${formatRp(b.saldo_terutang)}</td>
+                                <td class="py-1.5 px-2 text-center">${badgeBayar}</td>
+                                <td class="py-1.5 px-2 text-center no-print">${badgeApp}</td>
+                                <td class="py-1.5 px-2 text-center whitespace-nowrap no-print">${tombolAksi}</td>
+                            </tr>
+                        `;
+                    });
+                }
+
+            } catch (e) {
+                console.error("Gagal muat monitoring AP:", e);
+            }
+        }
+
+        function onVendorFilterChange() {
+            muatDataAP(false);
+        }
+
+        // FUNGSI CETAK PDF
+        function cetakPDF() {
+            const tgl = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+            document.getElementById('print-tanggal').innerText = tgl;
+            window.print();
+        }
+
+        // FUNGSI EXPORT KE EXCEL
+        function exportDaftarAPKeExcel() {
+            const activeBills = cacheDaftarBill.filter(b => Number(b.saldo_terutang || 0) > 0);
+
+            if (activeBills.length === 0) {
+                return alert("Tidak ada data hutang aktif untuk diekspor!");
+            }
+
+            const grouped = {};
+            activeBills.forEach(b => {
+                const vKey = `${b.nama_vendor || 'Tanpa Nama'} (${b.kode_vendor || '-'})`;
+                if (!grouped[vKey]) grouped[vKey] = [];
+                grouped[vKey].push(b);
+            });
+
+            const sortedVendorKeys = Object.keys(grouped).sort();
+            const excelRows = [
+                ["LAPORAN SUB-LEDGER HUTANG USAHA (TAGIHAN BELUM LUNAS)"],
+                [`Tanggal Unduh: ${new Date().toLocaleDateString('id-ID')}`],
+                [],
+                ["Nama / Kode Vendor", "No. Bill (Voucher)", "No. Faktur Vendor", "Cabang", "Tgl Tagihan", "Jatuh Tempo", "Total Tagihan (Rp)", "Saldo Hutang (Rp)", "Status Bayar"]
+            ];
+
+            let grandTotalTagihan = 0;
+            let grandTotalHutang = 0;
+
+            sortedVendorKeys.forEach(vKey => {
+                const bills = grouped[vKey];
+                let subtotalTagihan = 0;
+                let subtotalHutang = 0;
+
+                excelRows.push([`>> VENDOR: ${vKey}`, "", "", "", "", "", "", "", ""]);
+
+                bills.forEach(b => {
+                    const tot = Number(b.total_tagihan) || 0;
+                    const sld = Number(b.saldo_terutang) || 0;
+
+                    subtotalTagihan += tot;
+                    subtotalHutang += sld;
+                    grandTotalTagihan += tot;
+                    grandTotalHutang += sld;
+
+                    excelRows.push(["", b.no_bill || "-", b.no_faktur_vendor || "-", b.kode_cabang || "HO", b.tanggal || "-", b.jatuh_tempo || "-", tot, sld, b.status_tagihan || "Unpaid"]);
+                });
+
+                excelRows.push([`SUBTOTAL ${vKey}`, "", "", "", "", "", subtotalTagihan, subtotalHutang, ""]);
+                excelRows.push([]);
+            });
+
+            excelRows.push(["GRAND TOTAL HUTANG AKTIF", "", "", "", "", "", grandTotalTagihan, grandTotalHutang, ""]);
+
+            const ws = XLSX.utils.aoa_to_sheet(excelRows);
+            ws['!cols'] = [
+                { wch: 32 }, { wch: 18 }, { wch: 18 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 14 }
+            ];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Hutang Per Vendor");
+            XLSX.writeFile(wb, `Laporan_Hutang_AP_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+
+        async function reviewTagihan(noBill) {
+            try {
+                const res = await fetch(`/api/vendor_bill/detail/${encodeURIComponent(noBill)}`);
+                const data = await res.json();
+                if (!res.ok) return alert("Gagal memuat rincian dokumen.");
+
+                const h = data.header;
+                document.getElementById('rev-nobill').innerText = h.no_bill;
+                document.getElementById('rev-faktur').innerText = h.no_faktur_vendor;
+                document.getElementById('rev-cabang').innerText = h.kode_cabang || "HO";
+                document.getElementById('rev-vendor').innerText = `${h.kode_vendor} - ${h.nama_vendor}`;
+                document.getElementById('rev-tgl').innerText = h.tanggal;
+                document.getElementById('rev-tempo').innerText = h.jatuh_tempo;
+                document.getElementById('rev-hutang').innerText = `${h.kode_akun_hutang} (${h.nama_akun_hutang})`;
+                document.getElementById('rev-ket').innerText = h.keterangan || "-";
+
+                const tbody = document.getElementById('rev-tbody-detail');
+                tbody.innerHTML = "";
+                data.detail.forEach(d => {
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-1.5 font-mono text-indigo-700">${d.kode_akun} - ${d.nama_akun}</td>
+                            <td class="p-1.5 text-slate-600">${d.deskripsi || '-'}</td>
+                            <td class="p-1.5 text-right font-mono">${formatRp(d.nominal)}</td>
+                        </tr>
+                    `;
+                });
+
+                document.getElementById('rev-subtotal').innerText = formatRp(h.subtotal);
+                document.getElementById('rev-ppn').innerText = formatRp(h.ppn_nominal);
+                document.getElementById('rev-total').innerText = formatRp(h.total_tagihan);
+
+                document.getElementById('modal-review-bill').classList.remove('hidden');
+            } catch (e) {
+                alert("Kesalahan koneksi.");
+            }
+        }
+
+        function tutupReviewModal() {
+            document.getElementById('modal-review-bill').classList.add('hidden');
+        }
+
+        async function hapusDraftBill(noBill) {
+            if (!confirm(`Hapus draft tagihan ${noBill}?`)) return;
+            try {
+                const res = await fetch(`/api/vendor_bill/${encodeURIComponent(noBill)}`, { method: 'DELETE' });
+                const result = await res.json();
+                if (res.ok) {
+                    alert("🗑️ " + result.pesan);
+                    muatDataAP();
+                } else {
+                    alert("❌ Gagal: " + result.detail);
+                }
+            } catch (e) {
+                alert("Kesalahan koneksi ke server.");
+            }
+        }
+    </script>
+</body>
+
+</html>

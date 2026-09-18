@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Fixed Asset - SAP BoB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="/role_akses.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body class="h-full flex overflow-hidden text-slate-700 text-xs bg-slate-50">
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-100/70">
+        <header
+            class="h-10 bg-white border-b border-slate-200/80 px-4 flex items-center justify-between shadow-xs z-10 flex-shrink-0">
+            <div class="flex items-center gap-1.5 text-[11px]">
+                <span class="text-slate-400">Fixed Asset</span> <span class="text-slate-300">/</span>
+                <h2 class="font-semibold text-slate-800">Daftar Register Aset & Lokasi Penempatan</h2>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="muatDataAset()"
+                    class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-[10px] font-semibold px-2.5 py-1 rounded transition">
+                    🔄 Refresh
+                </button>
+                <button onclick="eksekusiExportAsset()"
+                    class="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-semibold px-2.5 py-1 rounded shadow-xs transition">
+                    📤 Export Excel
+                </button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-3 space-y-3">
+            <div class="bg-white rounded border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[450px]">
+                <div
+                    class="px-3 py-2 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                    <span class="font-bold text-slate-700 text-[10px] uppercase">Daftar Register Aset Tetap & Nilai
+                        Buku</span>
+                    <div class="w-full md:w-72">
+                        <input type="text" id="cari_aset" onkeyup="filterTabelAset()"
+                            placeholder="🔍 Cari Kode / Nama / Cabang / Dept..."
+                            class="w-full bg-white border border-slate-300 rounded px-2.5 py-1 text-[11px] outline-none">
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left border-collapse" id="tabel-aset">
+                        <thead class="bg-slate-100 text-slate-600 text-[10px] sticky top-0">
+                            <tr>
+                                <th class="p-2 border-b">Kode Aset</th>
+                                <th class="p-2 border-b">Nama Aset</th>
+                                <th class="p-2 border-b">Cabang</th>
+                                <th class="p-2 border-b">Departemen</th>
+                                <th class="p-2 border-b">Tgl Perolehan</th>
+                                <th class="p-2 border-b">Gol. Fiskal</th>
+                                <th class="p-2 border-b text-right">Harga Perolehan</th>
+                                <th class="p-2 border-b text-right">Akum. Penyusutan</th>
+                                <th class="p-2 border-b text-right">Nilai Buku</th>
+                                <th class="p-2 border-b text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabel-aset-body" class="divide-y divide-slate-100 text-[11px]">
+                            <tr>
+                                <td colspan="10" class="p-6 text-center text-slate-400 italic">Memuat aset...</td>
+                            </tr>
+                        </tbody>
+                        <tfoot class="bg-slate-50 font-bold text-slate-700 border-t-2 border-slate-200 text-[11px]">
+                            <tr>
+                                <td colspan="6" class="p-2 text-right uppercase text-[10px]">Total:</td>
+                                <td id="total_harga_perolehan" class="p-2 text-right font-mono text-slate-900">0</td>
+                                <td id="total_akum_penyusutan" class="p-2 text-right font-mono text-rose-600">0</td>
+                                <td id="total_nilai_buku" class="p-2 text-right font-mono text-emerald-600">0</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const formatRp = (v) => new Intl.NumberFormat('id-ID').format(v || 0);
+        let rawMasterAsset = [];
+
+        document.addEventListener("DOMContentLoaded", () => {
+            muatDataAset();
+        });
+
+        async function muatDataAset() {
+            const tbody = document.getElementById('tabel-aset-body');
+            try {
+                const res = await fetch(`/api/fixed_assets?_t=${Date.now()}`);
+                if (!res.ok) {
+                    throw new Error(`Server status: ${res.status}`);
+                }
+                rawMasterAsset = await res.json();
+                renderTabelAset(rawMasterAsset);
+            } catch (e) {
+                console.error("Gagal muat aset:", e);
+                if (tbody) {
+                    tbody.innerHTML = `<tr><td colspan="10" class="p-6 text-center text-rose-500 font-semibold italic">⚠️ Gagal memuat data aset (${e.message}). Silakan refresh kembali.</td></tr>`;
+                }
+            }
+        }
+
+        function renderTabelAset(data) {
+            const tbody = document.getElementById('tabel-aset-body');
+            tbody.innerHTML = "";
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" class="p-6 text-center text-slate-400 italic">Tidak ada data aset tetap.</td></tr>';
+                document.getElementById('total_harga_perolehan').innerText = "0";
+                document.getElementById('total_akum_penyusutan').innerText = "0";
+                document.getElementById('total_nilai_buku').innerText = "0";
+                return;
+            }
+
+            let totHarga = 0, totAkum = 0, totBuku = 0;
+
+            data.forEach(a => {
+                totHarga += (a.harga_perolehan || 0);
+                totAkum += (a.akumulasi_penyusutan || 0);
+                totBuku += (a.nilai_buku || 0);
+
+                // DEKLARASI VARIABEL isDisposed
+                const isDisposed = (a.status === "Disposed");
+
+                let badgeStatus = '';
+                if (a.status === "Disposed") {
+                    badgeStatus = `<span class="px-2 py-0.5 bg-rose-100 text-rose-800 rounded text-[9px] font-bold">🚫 DISPOSED</span>`;
+                } else if (a.status === "Pending Disposal") {
+                    badgeStatus = `<span class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-[9px] font-bold">⏳ PENDING DISPOSAL</span>`;
+                } else {
+                    badgeStatus = `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[9px] font-bold">✅ AKTIF</span>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition ${isDisposed ? 'bg-slate-50/70 text-slate-400' : ''}">
+                        <td class="p-2 font-mono font-bold ${isDisposed ? 'text-slate-500 line-through' : 'text-indigo-700'}">${a.kode_aset || '-'}</td>
+                        <td class="p-2 font-semibold ${isDisposed ? 'text-slate-500 line-through' : 'text-slate-800'}">${a.nama_aset || '-'}</td>
+                        <td class="p-2"><span class="px-1.5 py-0.5 bg-slate-100 border border-slate-200 text-slate-700 rounded font-semibold text-[10px]">${a.kode_cabang || 'HO'}</span></td>
+                        <td class="p-2"><span class="px-1.5 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded font-semibold text-[10px]">${a.kode_departemen || 'FIN'}</span></td>
+                        <td class="p-2 text-slate-500 font-mono">${a.tgl_perolehan || '-'}</td>
+                        <td class="p-2"><span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded font-semibold text-[9px]">${a.golongan_fiskal || '-'}</span></td>
+                        <td class="p-2 text-right font-mono font-bold text-slate-800">${formatRp(a.harga_perolehan)}</td>
+                        <td class="p-2 text-right font-mono text-rose-600">${formatRp(a.akumulasi_penyusutan)}</td>
+                        <td class="p-2 text-right font-mono text-emerald-600 font-bold">${formatRp(a.nilai_buku)}</td>
+                        <td class="p-2 text-center">${badgeStatus}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('total_harga_perolehan').innerText = formatRp(totHarga);
+            document.getElementById('total_akum_penyusutan').innerText = formatRp(totAkum);
+            document.getElementById('total_nilai_buku').innerText = formatRp(totBuku);
+        }
+
+        function filterTabelAset() {
+            const keyword = document.getElementById('cari_aset').value.toLowerCase().trim();
+            if (!keyword) {
+                renderTabelAset(rawMasterAsset);
+                return;
+            }
+            const hasilFilter = rawMasterAsset.filter(a =>
+                (a.kode_aset || '').toLowerCase().includes(keyword) ||
+                (a.nama_aset || '').toLowerCase().includes(keyword) ||
+                (a.kode_cabang || '').toLowerCase().includes(keyword) ||
+                (a.kode_departemen || '').toLowerCase().includes(keyword) ||
+                (a.golongan_fiskal || '').toLowerCase().includes(keyword) ||
+                (a.status || '').toLowerCase().includes(keyword)
+            );
+            renderTabelAset(hasilFilter);
+        }
+
+        function eksekusiExportAsset() {
+            if (!rawMasterAsset || rawMasterAsset.length === 0) return alert("Tidak ada data aset untuk diekspor!");
+            const excelRows = [
+                ["Kode Aset", "Nama Aset", "Cabang", "Departemen", "Tgl Perolehan", "Golongan Fiskal", "Harga Perolehan", "Akum. Penyusutan", "Nilai Buku", "Status"]
+            ];
+            let sumHarga = 0, sumAkum = 0, sumBuku = 0;
+            rawMasterAsset.forEach(a => {
+                const hrg = Number(a.harga_perolehan) || 0;
+                const akm = Number(a.akumulasi_penyusutan) || 0;
+                const nbk = Number(a.nilai_buku) || 0;
+                sumHarga += hrg; sumAkum += akm; sumBuku += nbk;
+                excelRows.push([a.kode_aset, a.nama_aset, a.kode_cabang || "HO", a.kode_departemen || "FIN", a.tgl_perolehan, a.golongan_fiskal, hrg, akm, nbk, a.status]);
+            });
+            excelRows.push(["TOTAL", "", "", "", "", "", sumHarga, sumAkum, sumBuku, ""]);
+            const ws = XLSX.utils.aoa_to_sheet(excelRows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Daftar Fixed Asset");
+            XLSX.writeFile(wb, `Daftar_Fixed_Asset_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+    </script>
+</body>
+
+</html>

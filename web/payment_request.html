@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permohonan Pembayaran (RFP) - SAP BoB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="h-full flex overflow-hidden text-slate-700 text-xs">
+
+    <!-- MAIN -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-100/70">
+        <header class="h-10 bg-white border-b border-slate-200 px-4 flex items-center justify-between shadow-xs z-10">
+            <div class="flex items-center gap-1.5 text-[11px]">
+                <span class="text-slate-400">Account Payable</span> <span class="text-slate-300">/</span>
+                <h2 class="font-semibold text-slate-800">Pengajuan Pembayaran ke Keuangan (RFP)</h2>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-3 space-y-3">
+
+            <!-- FORM RFP -->
+            <div class="bg-white rounded border border-slate-200 shadow-sm p-3">
+                <h3 class="font-bold text-slate-700 text-[11px] uppercase mb-2 border-b pb-1">📝 Buat Pengajuan
+                    Pembayaran (Request for Payment)</h3>
+                <form id="formRFP" onsubmit="simpanRFP(event)" class="grid grid-cols-1 md:grid-cols-4 gap-2">
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">No. RFP (Sistem) <span
+                                class="text-rose-500">*</span></label>
+                        <input type="text" id="no_rfp" required readonly
+                            class="w-full bg-slate-100 font-mono font-bold text-indigo-700 border border-slate-200 rounded px-2 py-1 text-[11px]">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Tanggal Pengajuan <span
+                                class="text-rose-500">*</span></label>
+                        <input type="date" id="tanggal" required onchange="generateNoRFP()"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-semibold text-indigo-700 mb-0.5">Pilih Tagihan Terutang
+                            (Open AP) <span class="text-rose-500">*</span></label>
+                        <select id="select_bill" required onchange="onFakturDipilih()"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none font-semibold">
+                            <option value="">-- Pilih Faktur Tagihan --</option>
+                        </select>
+                    </div>
+
+                    <div class="md:col-span-2 bg-slate-50 p-2 rounded border border-slate-200 text-[10px] space-y-1">
+                        <div>Rekanan: <span id="lbl_vendor" class="font-bold text-slate-700">-</span></div>
+                        <div>No. Faktur Vendor: <span id="lbl_faktur" class="font-mono text-slate-700">-</span></div>
+                        <div>Sisa Hutang: <span id="lbl_sisa" class="font-bold font-mono text-rose-600">Rp 0</span>
+                        </div>
+                        <div class="flex justify-between border-t pt-1">
+                            <span class="text-rose-600 font-semibold" id="lbl_jenis_pph">(-) Potongan PPh:</span>
+                            <span id="lbl_pph" class="font-bold font-mono text-rose-600">Rp 0</span>
+                        </div>
+                        <div class="flex justify-between font-bold text-indigo-900 border-t pt-1">
+                            <span>Estimasi Nilai Transfer:</span>
+                            <span id="lbl_kas_netto" class="font-mono">Rp 0</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Nominal Diajukan (Rp) <span
+                                class="text-rose-500">*</span></label>
+                        <input type="number" id="nominal_diajukan" required min="1" oninput="validasiMaksimalBayar()" placeholder="0"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-mono font-bold outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Keterangan
+                            Pengajuan</label>
+                        <input type="text" id="keterangan" placeholder="Alasan / prioritas pembayaran..."
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                    </div>
+
+                    <div class="md:col-span-4 flex justify-end pt-2 border-t">
+                        <button type="submit"
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-1.5 rounded text-[11px] shadow-sm">
+                            📨 Kirim Pengajuan ke Bagian Keuangan
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- DAFTAR OPEN BILLS -->
+            <div class="bg-white rounded border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[35vh]">
+                <div class="px-3 py-1.5 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                    <span class="font-bold text-slate-700 text-[10px] uppercase">Daftar Tagihan Siap Diajukan ke
+                        Keuangan</span>
+                    <button onclick="muatFakturOpen()" class="text-indigo-600 hover:underline text-[10px]">🔄
+                        Segarkan</button>
+                </div>
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-100 text-slate-600 text-[10px] sticky top-0">
+                            <tr>
+                                <th class="p-2 border-b">No. Bill</th>
+                                <th class="p-2 border-b">Faktur Vendor</th>
+                                <th class="p-2 border-b">Vendor</th>
+                                <th class="p-2 border-b">Jatuh Tempo</th>
+                                <th class="p-2 border-b text-right">Total Tagihan</th>
+                                <th class="p-2 border-b text-right">Sisa Hutang</th>
+                                <th class="p-2 border-b text-center w-24">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-bills" class="divide-y divide-slate-100 text-[11px]">
+                            <tr>
+                                <td colspan="7" class="p-4 text-center text-slate-400 italic">Memuat tagihan...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        const formatRp = (v) => new Intl.NumberFormat('id-ID').format(v || 0);
+        let listBills = [];
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            document.getElementById('tanggal').value = new Date().toISOString().split('T')[0];
+            await generateNoRFP();
+            await muatFakturOpen();
+        });
+
+        async function generateNoRFP() {
+            const tgl = document.getElementById('tanggal').value;
+            if (!tgl) return;
+            try {
+                const res = await fetch(`/api/rfp/next-no?tanggal=${encodeURIComponent(tgl)}`);
+                const d = await res.json();
+                if (d.next_no) document.getElementById('no_rfp').value = d.next_no;
+            } catch (e) { }
+        }
+
+        async function muatFakturOpen() {
+            try {
+                const res = await fetch('/api/vendor_payment/unpaid-bills');
+                listBills = await res.json();
+                const sel = document.getElementById('select_bill');
+                sel.innerHTML = '<option value="">-- Pilih Faktur Tagihan --</option>';
+                const tbody = document.getElementById('tbody-bills');
+                tbody.innerHTML = "";
+
+                if (listBills.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-400 italic">Tidak ada tagihan tertunggak.</td></tr>';
+                    return;
+                }
+
+                listBills.forEach(b => {
+                    sel.innerHTML += `<option value="${b.no_bill}">${b.no_bill} | ${b.nama_vendor} (Sisa: Rp ${formatRp(b.saldo_terutang)})</option>`;
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-2 font-mono font-bold text-indigo-700">${b.no_bill}</td>
+                            <td class="p-2 font-mono text-slate-600">${b.no_faktur_vendor}</td>
+                            <td class="p-2 font-semibold text-slate-800">${b.nama_vendor}</td>
+                            <td class="p-2 font-mono font-semibold text-rose-600">${b.jatuh_tempo}</td>
+                            <td class="p-2 text-right font-mono">${formatRp(b.total_tagihan)}</td>
+                            <td class="p-2 text-right font-mono font-bold text-rose-600">${formatRp(b.saldo_terutang)}</td>
+                            <td class="p-2 text-center">
+                                <button type="button" onclick="pilihBillKeForm('${b.no_bill}')" class="bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded text-[10px] font-bold">
+                                    Ajukan 📝
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (e) { }
+        }
+
+        function pilihBillKeForm(noBill) {
+            document.getElementById('select_bill').value = noBill;
+            onFakturDipilih();
+        }
+
+        let batasMaksimalKas = 0;
+
+        function onFakturDipilih() {
+            const noBill = document.getElementById('select_bill').value;
+            const b = listBills.find(x => x.no_bill === noBill);
+
+            if (!b) {
+                document.getElementById('lbl_vendor').innerText = "-";
+                document.getElementById('lbl_faktur').innerText = "-";
+                document.getElementById('lbl_sisa').innerText = "Rp 0";
+                document.getElementById('lbl_jenis_pph').innerText = "(-) Potongan PPh:";
+                document.getElementById('lbl_pph').innerText = "Rp 0";
+                document.getElementById('lbl_kas_netto').innerText = "Rp 0";
+                document.getElementById('nominal_diajukan').value = "";
+                batasMaksimalKas = 0;
+                return;
+            }   
+
+            const sisaHutang = parseFloat(b.saldo_terutang || 0);
+            const pphNom = parseFloat(b.pph_nominal || 0);
+            const jenisPPh = b.jenis_pph ? `(${b.jenis_pph})` : "";
+            const kasNetto = Math.max(0, sisaHutang - pphNom);
+            batasMaksimalKas = kasNetto;
+
+            document.getElementById('lbl_vendor').innerText = b.nama_vendor;
+            document.getElementById('lbl_faktur').innerText = b.no_faktur_vendor;
+            document.getElementById('lbl_sisa').innerText = `Rp ${formatRp(sisaHutang)}`;
+            document.getElementById('lbl_jenis_pph').innerText = pphNom > 0 
+                ? `(-) Potongan PPh ${jenisPPh}:` 
+                : "(-) Potongan PPh (Tidak Ada):";
+            document.getElementById('lbl_pph').innerText = `Rp ${formatRp(pphNom)}`;
+            document.getElementById('lbl_kas_netto').innerText = `Rp ${formatRp(kasNetto)}`;
+
+            const inputNominal = document.getElementById('nominal_diajukan');
+            inputNominal.value = sisaHutang;
+            inputNominal.max = sisaHutang;
+        }
+
+        function validasiMaksimalBayar() {
+            const inputNominal = document.getElementById('nominal_diajukan');
+            const errText = document.getElementById('err_nominal');
+            const nilaiInput = parseFloat(inputNominal.value) || 0;
+
+            if (batasMaksimalKas > 0 && nilaiInput > batasMaksimalKas) {
+                inputNominal.classList.add('border-rose-500', 'bg-rose-50', 'text-rose-700');
+                errText.classList.remove('hidden');
+            } else {
+                inputNominal.classList.remove('border-rose-500', 'bg-rose-50', 'text-rose-700');
+                errText.classList.add('hidden');
+            }
+        }
+        async function simpanRFP(e) {
+            e.preventDefault();
+            const noBill = document.getElementById('select_bill').value;
+            if (!noBill) return alert("Pilih tagihan yang akan diajukan!");
+
+            const nominalInput = parseFloat(document.getElementById('nominal_diajukan').value) || 0;
+
+            // VALIDASI PENGAMAN FRONTEND
+            if (nominalInput <= 0) {
+                return alert("⚠️ Nominal pengajuan harus lebih dari Rp 0!");
+            }
+            if (nominalInput > batasMaksimalKas) {
+                return alert(`⛔ PENGAMAN SISTEM AKTIF:\n\nNominal yang diajukan (Rp ${formatRp(nominalInput)}) tidak boleh melebihi Estimasi Kas Ditransfer (Rp ${formatRp(batasMaksimalKas)})!`);
+            }
+
+            const payload = {
+                no_rfp: document.getElementById('no_rfp').value,
+                tanggal: document.getElementById('tanggal').value,
+                no_bill: noBill,
+                nominal_diajukan: parseFloat(document.getElementById('nominal_diajukan').value) || 0,
+                keterangan: document.getElementById('keterangan').value.trim() || "-",
+                pemohon: "Staff_AP"
+            };
+
+            try {
+                const res = await fetch('/api/rfp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const d = await res.json();
+                if (res.ok) {
+                    alert("✅ " + d.pesan);
+                    document.getElementById('formRFP').reset();
+                    generateNoRFP();
+                    muatFakturOpen();
+                } else {
+                    alert("❌ Gagal: " + d.detail);
+                }
+            } catch (err) {
+                alert("Kesalahan koneksi ke server.");
+            }
+        }
+    </script>
+</body>
+
+</html>

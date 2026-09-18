@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pencairan Kas (Treasury) - SAP BoB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="h-full flex flex-col overflow-hidden text-slate-700 text-xs">
+
+    <!-- HEADER -->
+    <header
+        class="h-10 bg-white border-b border-slate-200 px-4 flex items-center justify-between shadow-xs z-10 flex-shrink-0">
+        <div class="flex items-center gap-1.5 text-[11px]">
+            <span class="text-slate-400">Treasury / Keuangan</span> <span class="text-slate-300">/</span>
+            <h2 class="font-semibold text-slate-800">Pencairan Kas & Pembayaran Vendor (RFP)</h2>
+        </div>
+        <button onclick="muatInboxRFP()"
+            class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1 rounded text-[11px] font-semibold border border-slate-300">
+            🔄 Segarkan Inbox RFP
+        </button>
+    </header>
+
+    <div class="flex-1 overflow-y-auto p-3 space-y-3">
+
+        <!-- BAGIAN 1: TABEL INBOX RFP DENGAN THICK MARK -->
+        <div class="bg-white rounded border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div class="px-3 py-2 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <span class="font-bold text-slate-700 text-[11px] uppercase">
+                    📋 Inbox Pengajuan Pembayaran (RFP) dari AP
+                </span>
+                <span id="label-tercentang"
+                    class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-bold">
+                    0 RFP Dipilih
+                </span>
+            </div>
+
+            <div class="overflow-x-auto max-h-60 overflow-y-auto">
+                <table class="w-full text-left border-collapse text-[11px]">
+                    <thead class="bg-slate-100 text-slate-600 text-[10px] sticky top-0 z-10 uppercase">
+                        <tr>
+                            <th class="p-2 border-b text-center w-10">
+                                <input type="checkbox" id="check-all" onchange="toggleCentangSemua(this)"
+                                    class="cursor-pointer">
+                            </th>
+                            <th class="p-2 border-b">No. RFP</th>
+                            <th class="p-2 border-b">No. Voucher AP</th>
+                            <th class="p-2 border-b">Vendor Rekanan</th>
+                            <th class="p-2 border-b">No. Faktur</th>
+                            <th class="p-2 border-b">Rekening Tujuan</th>
+                            <th class="p-2 border-b text-right">Tagihan Hutang AP</th>
+                            <th class="p-2 border-b text-right text-rose-600">(-) Pot. PPh</th>
+                            <th class="p-2 border-b text-right text-indigo-900 font-bold">Kas Bersih Ditransfer</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-rfp" class="divide-y divide-slate-100">
+                        <tr>
+                            <td colspan="8" class="p-4 text-center text-slate-400 italic">Memuat data pengajuan...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- BAGIAN 2: PENETAPAN BANK PEMBAYAR & VOUCHER KAS KELUAR -->
+        <div class="bg-white rounded border border-slate-200 shadow-sm p-3.5">
+            <h3 class="font-bold text-slate-800 text-xs uppercase mb-3 border-b pb-1.5 flex items-center gap-1.5">
+                <span>🏦</span> Eksekusi Pembayaran Kas Keluar (BKK)
+            </h3>
+
+            <form id="formPencairan" onsubmit="eksekusiPencairan(event)">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-2.5">
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Kode Voucher & No. Kas
+                            Keluar <span class="text-rose-500">*</span></label>
+                        <div class="flex gap-1">
+                            <select id="kode_voucher" onchange="generateSequentialRef()"
+                                class="w-20 bg-slate-50 border border-slate-200 rounded px-1 py-1 text-[11px] font-bold">
+                                <option value="BKK">BKK</option>
+                                <option value="BK">BK</option>
+                            </select>
+                            <input type="text" id="no_payment" required readonly placeholder="BKK YYYYMM-001"
+                                class="w-full bg-slate-100 font-mono font-bold text-indigo-700 border border-slate-200 rounded px-2 py-1 text-[11px]">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Tanggal Pencairan <span
+                                class="text-rose-500">*</span></label>
+                        <input type="date" id="tanggal" required onchange="generateSequentialRef()"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                    </div>
+
+                    <!-- PILIH BANK A / B / C -->
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-semibold text-indigo-700 mb-0.5">Pilih Rekening Bank Sumber
+                            Dana (Bank A / B / C) <span class="text-rose-500">*</span></label>
+                        <select id="select_bank" required
+                            class="w-full bg-indigo-50/60 border border-indigo-200 rounded px-2 py-1 text-[11px] font-bold text-slate-800 outline-none focus:border-indigo-500">
+                            <option value="">-- Pilih Akun Bank Pembayar --</option>
+                        </select>
+                    </div>
+
+                    <div class="md:col-span-4">
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Keterangan Pengeluaran
+                            Kas</label>
+                        <input type="text" id="keterangan"
+                            placeholder="Transfer pembayaran tagihan vendor via Internet Banking..."
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                    </div>
+                </div>
+
+                <!-- REKAPITULASI DANA AKHIR -->
+                <div
+                    class="mt-3 p-3 bg-slate-50 border border-slate-200 rounded grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+                    <div class="text-[11px]">
+                        <span class="text-slate-500 block">Total Pelunasan Hutang AP:</span>
+                        <span id="lbl-total-ap" class="font-mono font-bold text-slate-800 text-sm">Rp 0</span>
+                    </div>
+
+                    <div class="text-[11px]">
+                        <span class="text-rose-500 block">(-) Potongan PPh Otomatis:</span>
+                        <span id="lbl-total-pph" class="font-mono font-bold text-rose-600 text-sm">Rp 0</span>
+                    </div>
+
+                    <div class="text-[11px] bg-indigo-50 border border-indigo-200 p-2 rounded text-right">
+                        <span class="text-indigo-700 block font-semibold uppercase text-[10px]">Total Kas Keluar dari
+                            Bank:</span>
+                        <span id="lbl-dana-bersih" class="font-mono font-bold text-indigo-900 text-base">Rp 0</span>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-3 border-t mt-3">
+                    <button type="submit" id="btnProses"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2 rounded text-[11px] shadow-sm flex items-center gap-1.5">
+                        🚀 Eksekusi Pembayaran (Auto-Jurnal ke Posting Pending)
+                    </button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+
+    <script>
+        const formatRp = (v) => new Intl.NumberFormat('id-ID').format(v || 0);
+        let listInboxRFP = [];
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            document.getElementById('tanggal').value = new Date().toISOString().split('T')[0];
+            await generateSequentialRef();
+            await muatDataBank();
+            await muatInboxRFP();
+        });
+
+        // 1. GENERATE NO KAS KELUAR OTOMATIS BERDASARKAN KODE VOUCHER & BULAN
+        async function generateSequentialRef() {
+            const voucher = document.getElementById('kode_voucher').value;
+            const tgl = document.getElementById('tanggal').value;
+            if (!voucher || !tgl) return;
+
+            const periode = tgl.substring(0, 7).replace("-", ""); // Format: YYYYMM
+            try {
+                const res = await fetch(`/api/jurnal/next_ref?voucher=${encodeURIComponent(voucher)}&periode=${encodeURIComponent(periode)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.next_ref) {
+                        document.getElementById('no_payment').value = data.next_ref;
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error("Gagal auto-generate no kas keluar:", e);
+            }
+            // Fallback
+            document.getElementById('no_payment').value = `${voucher} ${periode}-001`;
+        }
+
+        // 2. MUAT DAFTAR AKUN KAS/BANK DARI COA (PREFIX 11)
+        async function muatDataBank() {
+            try {
+                const res = await fetch('/api/coa');
+                const coa = await res.json();
+                const selBank = document.getElementById('select_bank');
+                selBank.innerHTML = '<option value="">-- Pilih Akun Bank Pembayar --</option>';
+
+                coa.forEach(c => {
+                    const kode = c.kode || c.kode_akun || c.no_akun;
+                    const nama = (c.nama || c.nama_akun || '').trim();
+                    if (String(kode).startsWith('11')) {
+                        selBank.innerHTML += `<option value="${kode}">${kode} - ${nama}</option>`;
+                    }
+                });
+            } catch (e) {
+                console.error("Gagal muat bank:", e);
+            }
+        }
+
+        // 3. MUAT INBOX RFP DARI AP
+        async function muatInboxRFP() {
+            try {
+                const res = await fetch('/api/rfp/inbox-finance');
+                listInboxRFP = await res.json();
+                const tbody = document.getElementById('tbody-rfp');
+                tbody.innerHTML = "";
+
+                if (listInboxRFP.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400 italic">Tidak ada antrean pengajuan pembayaran (RFP) dari AP.</td></tr>';
+                    hitungKalkulasiKas();
+                    return;
+                }
+
+                listInboxRFP.forEach(r => {
+                    const badgePPh = r.pph_nominal > 0
+                        ? `<div class="font-mono text-rose-600 font-bold">Rp ${formatRp(r.pph_nominal)}</div><div class="text-[9px] text-slate-400">(${r.jenis_pph})</div>`
+                        : `<span class="text-slate-400">-</span>`;
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="p-2 text-center">
+                                <input type="checkbox" value="${r.id}" 
+                                       data-nominal="${r.nominal_diajukan}" 
+                                       data-pph="${r.pph_nominal}" 
+                                       data-kas="${r.kas_bersih}" 
+                                       onchange="hitungKalkulasiKas()" 
+                                       class="check-rfp cursor-pointer w-4 h-4">
+                            </td>
+                            <td class="p-2 font-mono font-bold text-indigo-700">${r.no_rfp}</td>
+                            <td class="p-2 font-mono font-bold text-indigo-900 bg-indigo-50/50">${r.no_bill}</td>
+                            <td class="p-2 font-semibold text-slate-800">${r.nama_vendor}</td>
+                            <td class="p-2 font-mono text-slate-600">${r.no_faktur_vendor}</td>
+                            <td class="p-2 font-mono text-indigo-800 text-[10px]">${r.rekening_tujuan}</td>
+                            <td class="p-2 text-right font-mono font-bold text-slate-800">Rp ${formatRp(r.nominal_diajukan)}</td>
+                            <td class="p-2 text-right">${badgePPh}</td>
+                            <td class="p-2 text-right font-mono font-bold text-indigo-900">Rp ${formatRp(r.kas_bersih)}</td>
+                        </tr>
+                    `;
+                });
+                hitungKalkulasiKas();
+            } catch (e) {
+                console.error("Gagal muat inbox:", e);
+            }
+        }
+
+        function toggleCentangSemua(masterCheck) {
+            const checkboxes = document.querySelectorAll('.check-rfp');
+            checkboxes.forEach(cb => cb.checked = masterCheck.checked);
+            hitungKalkulasiKas();
+        }
+
+        function hitungKalkulasiKas() {
+            const checkedBoxes = document.querySelectorAll('.check-rfp:checked');
+            let totalAP = 0;
+            let totalPPh = 0;
+            let totalKas = 0;
+
+            checkedBoxes.forEach(cb => {
+                totalAP += parseFloat(cb.getAttribute('data-nominal')) || 0;
+                totalPPh += parseFloat(cb.getAttribute('data-pph')) || 0;
+                totalKas += parseFloat(cb.getAttribute('data-kas')) || 0;
+            });
+
+            document.getElementById('label-tercentang').innerText = `${checkedBoxes.length} RFP Dipilih`;
+            document.getElementById('lbl-total-ap').innerText = `Rp ${formatRp(totalAP)}`;
+            document.getElementById('lbl-total-pph').innerText = `Rp ${formatRp(totalPPh)}`;
+            document.getElementById('lbl-dana-bersih').innerText = `Rp ${formatRp(totalKas)}`;
+        }
+
+        async function eksekusiPencairan(e) {
+            e.preventDefault();
+            const checkedBoxes = document.querySelectorAll('.check-rfp:checked');
+            if (checkedBoxes.length === 0) {
+                return alert("⚠️ Centang minimal satu dokumen RFP yang akan dicairkan!");
+            }
+
+            const bankAkun = document.getElementById('select_bank').value;
+            if (!bankAkun) {
+                return alert("⚠️ Tentukan Rekening Bank Pembayar!");
+            }
+
+            const idList = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
+            const payload = {
+                rfp_ids: idList,
+                kode_voucher: document.getElementById('kode_voucher').value || "BKK",
+                no_payment: document.getElementById('no_payment').value,
+                tanggal: document.getElementById('tanggal').value,
+                kode_cabang: "HO",
+                kode_departemen: "FIN",
+                kode_akun_kas: bankAkun,
+                keterangan: document.getElementById('keterangan').value.trim() || "-",
+                pembuat: "Finance"
+            };
+
+            const btn = document.getElementById('btnProses');
+            btn.disabled = true;
+            btn.innerHTML = "⏳ Menerbitkan Jurnal BKK ke Posting Pending...";
+
+            try {
+                const res = await fetch('/api/vendor_payment/batch-rfp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const d = await res.json();
+                if (res.ok) {
+                    alert("🎉 " + d.pesan);
+                    document.getElementById('formPencairan').reset();
+                    await generateSequentialRef();
+                    await muatInboxRFP();
+                } else {
+                    alert("❌ Gagal: " + d.detail);
+                }
+            } catch (err) {
+                alert("Kesalahan koneksi ke server.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = "🚀 Eksekusi Pembayaran (Auto-Jurnal ke Posting Pending)";
+            }
+        }
+    </script>
+</body>
+
+</html>

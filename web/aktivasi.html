@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-900">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aktivasi Lisensi - SAP BoB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-900 text-slate-100 flex items-center justify-center min-h-screen p-4 font-sans text-xs">
+    <div class="bg-slate-800 border border-slate-700 rounded-lg p-6 max-w-md w-full shadow-2xl space-y-4">
+        <div class="text-center space-y-1">
+            <h1 class="text-base font-bold text-amber-400 uppercase tracking-wide">⚠️ Masa Trial Telah Berakhir</h1>
+            <p id="pesan-kunci" class="text-slate-400 text-[11px]">
+                Aplikasi telah mencapai batas trial (30 hari atau 30 nomor jurnal).
+            </p>
+        </div>
+
+        <div class="bg-slate-950 p-3 rounded border border-slate-700 space-y-1">
+            <label class="block text-[10px] text-slate-400 uppercase font-semibold">ID Machine Anda</label>
+            <div class="flex items-center gap-2">
+                <input type="text" id="machine_id" readonly
+                    class="w-full bg-transparent font-mono text-emerald-400 text-[11px] outline-none font-bold">
+                <button onclick="salinID()"
+                    class="bg-slate-700 hover:bg-slate-600 text-white px-2.5 py-1 rounded text-[10px] font-semibold transition">Salin</button>
+            </div>
+        </div>
+
+        <div
+            class="bg-amber-950/40 border border-amber-800/60 rounded p-2.5 text-[11px] text-amber-200 leading-relaxed">
+            Kirimkan <strong>ID Machine</strong> di atas ke pengembang aplikasi untuk mendapatkan <strong>License
+                Key</strong> resmi agar aplikasi dapat digunakan kembali secara normal tanpa batasan.
+        </div>
+
+        <div class="space-y-2 pt-2 border-t border-slate-700">
+            <label class="block text-[10px] text-slate-400 uppercase font-semibold">Masukkan License Key</label>
+            <input type="text" id="input_key" placeholder="XXXX-XXXX-XXXX-XXXX"
+                class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-center font-mono uppercase tracking-widest text-sm text-white outline-none focus:border-indigo-500">
+            <button onclick="aktivasi()"
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded text-xs transition">
+                🔓 Aktifkan Lisensi Penuh
+            </button>
+        </div>
+    </div>
+
+    <script>
+        async function loadStatus() {
+            try {
+                const res = await fetch('/api/license/status');
+                const data = await res.json();
+                document.getElementById('machine_id_input').value = data.machine_id;
+                if (data.valid) {
+                    window.location.replace('/dashboard');
+                }
+            } catch (e) {
+                document.getElementById('machine_id_input').value = "Gagal membaca Hardware ID";
+            }
+        }
+
+        function salinMachineID() {
+            const el = document.getElementById('machine_id_input');
+            navigator.clipboard.writeText(el.value);
+            const btn = document.getElementById('btn_salin');
+            btn.innerText = "✅ Tersalin!";
+            setTimeout(() => { btn.innerText = "📋 Salin"; }, 2000);
+        }
+
+        async function prosesAktivasi() {
+            const key = document.getElementById('license_key_input').value.trim();
+            if (!key) return alert("Masukkan License Key terlebih dahulu!");
+
+            const btn = document.getElementById('btn_aktivasi');
+            btn.innerText = "Memverifikasi...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/license/activate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ license_key: key })
+                });
+                const result = await res.json();
+
+                if (res.ok) {
+                    alert("🎉 " + result.pesan);
+                    window.location.replace('/dashboard');
+                } else {
+                    alert("❌ " + (result.detail || "License Key tidak valid!"));
+                }
+            } catch (e) {
+                alert("Terjadi kesalahan koneksi ke server lokal.");
+            } finally {
+                btn.innerText = "🔓 Aktivasi Aplikasi Sekarang";
+                btn.disabled = false;
+            }
+        }
+
+        loadStatus();
+    </script>
+</body>
+
+</html>

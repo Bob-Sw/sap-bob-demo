@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Arus Kas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* PENGATURAN PRINT PDF / PRINTER */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 10mm 15mm;
+            }
+
+            body {
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            /* Sembunyikan elemen yang tidak perlu dicetak */
+            .no-print,
+            header,
+            aside,
+            .filter-box {
+                display: none !important;
+            }
+
+            /* Lepas semua batasan ukuran layar agar muat di kertas */
+            .print-container,
+            main {
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 auto !important;
+                max-width: 100% !important;
+                width: 100% !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+
+            /* Rapatkan jarak antar item agar muat 1 halaman */
+            .py-2 {
+                padding-top: 4px !important;
+                padding-bottom: 4px !important;
+            }
+
+            .mb-6 {
+                margin-bottom: 10px !important;
+            }
+
+            .mb-2 {
+                margin-bottom: 4px !important;
+            }
+
+            .text-sm {
+                font-size: 9pt !important;
+            }
+
+            /* Kecilkan box Saldo Akhir */
+            .py-4 {
+                padding-top: 8px !important;
+                padding-bottom: 8px !important;
+            }
+
+            .mt-4 {
+                margin-top: 10px !important;
+            }
+
+            h2.text-xl {
+                font-size: 14pt !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-slate-100 text-slate-800 p-6 font-sans">
+    <div
+        class="no-print bg-white border rounded-lg p-5 mb-6 shadow-sm max-w-4xl mx-auto flex justify-between items-center">
+        <div>
+            <h1 class="text-xl font-bold">💸 Cash Flow</h1>
+        </div>
+        <div class="flex gap-2 items-end">
+            <div><label class="block text-[11px] mb-1">Mulai</label><input type="date" id="tgl_mulai"
+                    class="border rounded px-2 py-1 text-sm"></div>
+            <div><label class="block text-[11px] mb-1">Sampai</label><input type="date" id="tgl_selesai"
+                    class="border rounded px-2 py-1 text-sm"></div>
+            <div>
+                <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Cabang</label>
+                <select id="kode_cabang" onchange="loadCashFlow()" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] outline-none">
+                    <option value="SEMUA" selected>Semua Cabang</option>
+                </select>
+            </div>
+            <button onclick="loadCashFlow()"
+                class="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-bold">Tampilkan</button>
+            <button onclick="window.print()"
+                class="bg-slate-700 text-white px-4 py-1.5 rounded text-sm font-bold">Cetak</button>
+        </div>
+    </div>
+
+    <!-- KERTAS LEMBAR ARUS KAS -->
+    <div class="sheet-box bg-white border border-slate-300 rounded shadow-sm max-w-3xl mx-auto pt-5 pb-8 px-8 md:px-10 text-[13px]">
+
+        <!-- KOP RESMI LAPORAN (BORDER BAWAH FULL 12 KOLOM) -->
+        <div class="border-b-2 border-black pb-4 mb-5 grid grid-cols-12 items-start gap-2">
+            
+            <!-- KIRI: Logo & Nama Perusahaan (Col-5) -->
+            <div class="col-span-5 flex items-start gap-2.5">
+                <img id="kop_logo" src="" alt="Logo" class="h-8 w-auto max-w-[90px] object-contain hidden" onerror="this.classList.add('hidden')">
+                <h1 id="kop_nama_usaha" class="text-[11px] font-bold uppercase tracking-wide text-blue-800 leading-tight pt-0.5 whitespace-nowrap">
+                    <!-- Terisi otomatis dari database -->
+                </h1>
+            </div>
+
+            <!-- TENGAH: Judul Laporan & Cabang Dinamis (Col-3) -->
+            <div class="col-span-3 text-center translate-y-[12px]">
+                <h2 class="text-sm font-black uppercase tracking-wider text-black">
+                    ARUS KAS
+                </h2>
+                <p id="subJudulCabang" class="text-[11px] font-semibold text-slate-600 mt-0.5">
+                    Semua Cabang
+                </p>
+            </div>
+
+            <!-- KANAN: Tanggal & Mata Uang (Col-4) -->
+            <div class="col-span-4 text-right text-xs translate-y-[12px]">
+                <p id="lblTanggal" class="font-bold text-slate-800 font-mono">Per Tanggal: -</p>
+                <p class="text-[10px] text-slate-400 italic mt-0.5">Mata Uang: IDR (Rupiah)</p>
+            </div>
+
+        </div>
+
+        <!-- ISI LAPORAN ARUS KAS -->
+        <div class="space-y-4">
+            <!-- Saldo Awal Kas -->
+            <div class="flex justify-between items-center font-bold bg-slate-50 border border-slate-200 rounded px-4 py-2.5 text-sm">
+                <span>SALDO AWAL KAS</span>
+                <span id="saldoAwal" class="font-mono text-slate-900">Rp 0</span>
+            </div>
+
+            <!-- Aktivitas Operasional -->
+            <div>
+                <h3 class="font-bold text-slate-800 border-b border-slate-300 pb-1 mb-2 text-xs uppercase tracking-wider">
+                    I. Aktivitas Operasional
+                </h3>
+                <div class="flex justify-between py-1.5 border-b border-slate-100 pl-3">
+                    <span>Penerimaan Operasional</span>
+                    <span id="opIn" class="font-mono text-emerald-600">Rp 0</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-slate-100 pl-3">
+                    <span>Pengeluaran Operasional</span>
+                    <span id="opOut" class="font-mono text-rose-600">(Rp 0)</span>
+                </div>
+                <div class="flex justify-between font-bold text-blue-900 bg-blue-50 px-3 py-2 mt-2 rounded">
+                    <span>Kas Bersih Operasional</span>
+                    <span id="opNet" class="font-mono">Rp 0</span>
+                </div>
+            </div>
+
+            <!-- Aktivitas Investasi -->
+            <div>
+                <h3 class="font-bold text-slate-800 border-b border-slate-300 pb-1 mb-2 text-xs uppercase tracking-wider">
+                    II. Aktivitas Investasi
+                </h3>
+                <div class="flex justify-between py-1.5 border-b border-slate-100 pl-3">
+                    <span>Penerimaan Investasi</span>
+                    <span id="invIn" class="font-mono text-emerald-600">Rp 0</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-slate-100 pl-3">
+                    <span>Pengeluaran Investasi</span>
+                    <span id="invOut" class="font-mono text-rose-600">(Rp 0)</span>
+                </div>
+                <div class="flex justify-between font-bold text-emerald-900 bg-emerald-50 px-3 py-2 mt-2 rounded">
+                    <span>Kas Bersih Investasi</span>
+                    <span id="invNet" class="font-mono">Rp 0</span>
+                </div>
+            </div>
+
+        <h3 class="font-bold text-slate-800 border-b border-slate-300 pb-1 mb-2">Aktivitas Pendanaan</h3>
+        <div class="flex justify-between py-2 border-b border-slate-100 pl-4"><span>Penerimaan Pendanaan</span><span
+                id="penIn" class="font-mono">Rp 0</span></div>
+        <div class="flex justify-between py-2 border-b border-slate-100 pl-4"><span>Pengeluaran Pendanaan</span><span
+                id="penOut" class="font-mono text-rose-600">(Rp 0)</span></div>
+        <div class="flex justify-between font-bold text-purple-900 bg-purple-50 px-4 py-2 mt-2 mb-6"><span>Kas Bersih
+                Pendanaan</span><span id="penNet" class="font-mono">Rp 0</span></div>
+
+        <div
+            class="flex justify-between items-center font-bold text-slate-800 border-t-2 border-slate-800 pt-3 mt-4 mb-4">
+            <span id="lblKen">KENAIKAN BERSIH KAS</span><span id="kenaikanBersih" class="font-mono text-base">Rp
+                0</span>
+        </div>
+        <div
+            class="flex justify-between items-center font-black text-lg bg-slate-800 text-white rounded py-4 px-5 shadow-md">
+            <span>SALDO AKHIR KAS</span><span id="saldoAkhir" class="font-mono tracking-wider">Rp 0</span>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('tgl_mulai').valueAsDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+        document.getElementById('tgl_selesai').valueAsDate = new Date();
+
+        const formatRp = (v, isExpense = false) => {
+            const val = Number(v) || 0;
+            const formatted = new Intl.NumberFormat('id-ID').format(Math.abs(val));
+            if (val < 0 || (isExpense && val > 0)) return `(${formatted})`;
+            return formatted;
+        };
+
+        function getValidDate(val, fallback) {
+            if (!val) return fallback;
+            if (val.includes('-')) return val;
+            const p = val.split('/');
+            if (p.length === 3) return `${p[2]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}`;
+            return fallback;
+        }
+
+        // Muat daftar cabang resmi dari database
+        async function muatMasterCabang() {
+            try {
+                const res = await fetch('/api/cabang');
+                if (res.ok) {
+                    const listCabang = await res.json();
+                    const selCabang = document.getElementById('kode_cabang');
+                    if (selCabang && listCabang.length > 0) {
+                        selCabang.innerHTML = '<option value="SEMUA" selected>Semua Cabang</option>';
+                        listCabang.forEach(c => {
+                            selCabang.innerHTML += `<option value="${c.kode}">${c.kode} - ${c.nama}</option>`;
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn("Gagal muat cabang:", e);
+            }
+        }
+
+
+        // Fungsi bantuan sumData aman
+        function sumData(list, isNegative = false) {
+            if (!list || !Array.isArray(list)) return 0;
+            const total = list.reduce((acc, curr) => acc + (Number(curr.jumlah) || 0), 0);
+            return isNegative ? -total : total;
+        }
+
+
+        async function loadCashFlow() {
+            const start = document.getElementById('tgl_mulai').value || '2026-01-01';
+            const end = document.getElementById('tgl_selesai').value || '2026-12-31';
+            const elCabang = document.getElementById('kode_cabang');
+            const cabangKode = elCabang ? elCabang.value : 'SEMUA';
+
+            // Sinkronkan judul di kop laporan
+            const lblTanggal = document.getElementById('subJudulTanggal') || document.querySelector('.text-right p');
+            if (lblTanggal) lblTanggal.innerText = `Periode: ${start} s/d ${end}`;
+
+            const lblCabang = document.getElementById('subJudulCabang');
+            if (lblCabang && elCabang && elCabang.selectedIndex >= 0) {
+                lblCabang.innerText = elCabang.options[elCabang.selectedIndex].text;
+            }
+
+            try {
+                const res = await fetch(`/api/cash_flow?tgl_mulai=${start}&tgl_selesai=${end}&kode_cabang=${encodeURIComponent(cabangKode)}&_t=${Date.now()}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                const data = await res.json();
+
+                // Helper pembaca nilai toleran (bisa membaca properti .in atau .masuk)
+                const getVal = (obj, keyA, keyB) => {
+                    if (!obj) return 0;
+                    if (obj[keyA] !== undefined) return Number(obj[keyA]) || 0;
+                    if (Array.isArray(obj[keyB])) return obj[keyB].reduce((a, b) => a + (Number(b.jumlah) || 0), 0);
+                    return 0;
+                };
+
+                const opInVal = getVal(data.operasional, 'in', 'masuk');
+                const opOutVal = getVal(data.operasional, 'out', 'keluar');
+                const invInVal = getVal(data.investasi, 'in', 'masuk');
+                const invOutVal = getVal(data.investasi, 'out', 'keluar');
+                const penInVal = getVal(data.pendanaan, 'in', 'masuk');
+                const penOutVal = getVal(data.pendanaan, 'out', 'keluar');
+
+                // Tampilkan ke layar
+                document.getElementById('saldoAwal').innerText = `Rp ${formatRp(data.saldo_awal)}`;
+
+                document.getElementById('opIn').innerText = `Rp ${formatRp(opInVal)}`;
+                document.getElementById('opOut').innerText = `(Rp ${formatRp(opOutVal)})`;
+                document.getElementById('opNet').innerText = `Rp ${formatRp(data.operasional.net)}`;
+
+                document.getElementById('invIn').innerText = `Rp ${formatRp(invInVal)}`;
+                document.getElementById('invOut').innerText = `(Rp ${formatRp(invOutVal)})`;
+                document.getElementById('invNet').innerText = `Rp ${formatRp(data.investasi.net)}`;
+
+                if (document.getElementById('penIn')) document.getElementById('penIn').innerText = `Rp ${formatRp(penInVal)}`;
+                if (document.getElementById('penOut')) document.getElementById('penOut').innerText = `(Rp ${formatRp(penOutVal)})`;
+                if (document.getElementById('penNet')) document.getElementById('penNet').innerText = `Rp ${formatRp(data.pendanaan.net)}`;
+
+                if (document.getElementById('kenaikanBersih')) document.getElementById('kenaikanBersih').innerText = `Rp ${formatRp(data.kenaikan_bersih)}`;
+                if (document.getElementById('saldoAkhir')) document.getElementById('saldoAkhir').innerText = `Rp ${formatRp(data.saldo_akhir)}`;
+
+            } catch (e) {
+                console.error("Gagal load cash flow:", e);
+            }
+        }
+
+        // Inisialisasi awal
+        document.addEventListener("DOMContentLoaded", async () => {
+            await muatMasterCabang();
+            await loadCashFlow();
+        });
+
+
+        // Letakkan muatKopPerusahaan secara terpisah dan tangani error-nya tanpa alert
+        async function muatKopPerusahaan() {
+            try {
+                const res = await fetch('/api/profil_usaha');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                const elNama = document.getElementById('kop_nama_usaha');
+                if (elNama && data.nama_usaha) {
+                    elNama.innerText = data.nama_usaha;
+                }
+
+                const elLogo = document.getElementById('kop_logo');
+                if (elLogo && data.logo_path) {
+                    let cleanUrl = data.logo_path.replace(/^\/web\//, '/');
+                    elLogo.src = cleanUrl + '?t=' + Date.now();
+                    elLogo.onload = () => elLogo.classList.remove('hidden');
+                }
+            } catch (e) {
+                // Jangan beri alert di sini agar tidak mengganggu laporan
+                console.warn("Info profil usaha belum dimuat:", e);
+            }
+        }
+        document.addEventListener("DOMContentLoaded", () => {
+            muatKopPerusahaan(); // <-- Wajib dipanggil di sini
+        });
+    </script>
+</body>
+
+</html>

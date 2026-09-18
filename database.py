@@ -9,19 +9,20 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from fastapi import Request, Response
 
+raw_url = os.environ.get("DATABASE_URL", "").strip()
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # DB_FILE = os.path.join(BASE_DIR, "sys_bob.dat")
 
 # Baca dari variabel Railway, fallback ke lokal jika dijalankan di laptop
-DATABASE_URL = os.environ.get(
-    "DATABASE_URL", 
-    "postgresql://postgres:postgres@localhost:5432/db_bob"
-)
+if not raw_url or raw_url.startswith("${{"):
+    DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/db_bob"
+else:
+    DATABASE_URL = raw_url
 
-# Sesuaikan prefix driver jika perlu
+# Perbaiki prefix postgres:// menjadi postgresql://
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-
 engine = create_engine(DATABASE_URL, pool_pre_ping=True, poolclass=NullPool)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

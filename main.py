@@ -6632,6 +6632,5 @@ app.mount("/web", StaticFiles(directory="web"), name="web")
 
 
 if __name__ == "__main__":
-    print("🔒 Menjalankan Server Modul SAP BoB (Secure Enterprise Edition)...")
-    threading.Thread(target=buka_browser_otomatis, daemon=True).start()
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, log_level="warning")
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)

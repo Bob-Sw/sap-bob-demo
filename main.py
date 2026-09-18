@@ -44,7 +44,6 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 import uvicorn
 import traceback
-import license_engine
 from database import (
     init_db,
     get_session,

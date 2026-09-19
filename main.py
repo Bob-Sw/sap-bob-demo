@@ -6618,6 +6618,23 @@ def ambil_ip_client(request: Request) -> str:
 
     return "127.0.0.1"
 
+@app.middleware("http")
+async def monitor_akses_server(request: Request, call_next):
+    waktu_mulai = time.time()
+    
+    # Ambil IP asli pengakses (baik dari proxy Railway/Cloudflare maupun lokal)
+    ip_client = (
+        request.headers.get("cf-connecting-ip")
+        or (request.headers.get("x-forwarded-for").split(",")[0].strip() if request.headers.get("x-forwarded-for") else None)
+        or (request.client.host if request.client else "Unknown")
+    )
+    
+    response = await call_next(request)
+    durasi = (time.time() - waktu_mulai) * 1000
+    
+    # Menampilkan ke Deploy Logs Railway atau Terminal Server
+    print(f"📡 [AKSES MASUK] IP: {ip_client} | Endpoint: {request.method} {request.url.path} | Status: {response.status_code} ({durasi:.1f} ms)")
+    return response
 
 # ==========================================
 # 14. BROWSER OTOMATIS & SERVER LAUNCHER

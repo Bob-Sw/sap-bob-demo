@@ -9,7 +9,7 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from fastapi import Request, Response
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+raw_url = os.environ.get("DATABASE_URL", "").strip()
 
 # Baca dari variabel Railway, fallback ke lokal jika dijalankan di laptop
 if not raw_url or raw_url.startswith("${{"):

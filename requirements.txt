@@ -9,4 +9,3 @@ bcrypt
 itsdangerous
 cryptography
 apscheduler
-psycopg[binary]

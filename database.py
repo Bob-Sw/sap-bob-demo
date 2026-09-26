@@ -11,17 +11,15 @@ from fastapi import Request, Response
 
 raw_url = os.environ.get("DATABASE_URL", "").strip()
 
-# Baca dari variabel Railway, fallback ke lokal jika dijalankan di laptop
+# Baca dari variabel Railway, fallback ke lokal jika dijalankan di komputer lokal
 if not raw_url or raw_url.startswith("${{"):
     DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/db_bob"
 else:
     DATABASE_URL = raw_url
 
 # Perbaiki prefix postgres:// menjadi postgresql://
-if DATABASE_URL.startswith("postgresql://"):
-    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
-elif DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 engine = create_engine(
     DATABASE_URL,
